@@ -1,0 +1,22 @@
+{
+  "name": "tuval",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A thoughtful, touch-friendly drawing studio in your browser.",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "node --test tests/unit/*.test.js",
+    "test:e2e": "playwright test",
+    "lint": "node scripts/check-source.js",
+    "check": "npm run lint && npm test && npm run build && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "vite": "8.3.2"
+  }
+}

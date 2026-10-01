@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Akıllı Çizim Tuvali</title>
+    <style>
+        :root {
+            /* Liquid Glass Tema */
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            --active-color: #007AFF;
+            --danger-color: #FF3B30;
+            --tool-size: 42px;
+            --island-padding: 8px;
+
+            /* MCP Variables */
+            --mcp-bg: rgba(255, 255, 255, 0.35);
+            --mcp-text: #000000;
+            --mcp-border: rgba(255, 255, 255, 0.5);
+            --handle-size: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            background-color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* --- UI ISLAND --- */
+        #ui-island {
+            position: absolute;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            border-radius: 9999px;
+            transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.1s linear,
+                border-radius 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            left: 0;
+            top: 0;
+        }
+
+        #ui-island.collapsed {
+            width: 60px;
+            height: 60px;
+            cursor: grab;
+        }
+
+        #ui-island.collapsed:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        #ui-island.expanded {
+            cursor: default;
+            border-radius: 9999px;
+        }
+
+        .island-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: var(--island-padding);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            /* Enable scrolling */
+            overflow-y: hidden;
+            border-radius: 9999px;
+            /* Hide scrollbar */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .island-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        #ui-island.expanded .island-content {
+            opacity: 1;
+            pointer-events: all;
+            transition-delay: 0.15s;
+        }
+
+        .island-content.vertical {
+            flex-direction: column;
+        }
+
+        .island-content.horizontal {
+            flex-direction: row;
+        }
+
+        .tool-btn {
+            width: var(--tool-size);
+            height: var(--tool-size);
+            min-width: var(--tool-size);
+            min-height: var(--tool-size);
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, opacity 0.2s, transform 0.1s;
+            color: #333;
+            position: relative;
+            touch-action: none;
+        }
+
+        .tool-btn:active {
+            transform: scale(0.92);
+        }
+
+        .tool-btn:disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .tool-btn.active {
+            background: var(--active-color);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        #btn-color-picker.active svg {
+            fill: white;
+        }
+
+        .size-indicator {
+            font-size: 11px;
+            color: #555;
+            font-weight: 700;
+            min-width: 32px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 4px;
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .vertical .size-indicator {
+            transform: rotate(0deg);
+            margin: 5px 0;
+        }
+
+        .color-preset {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .color-preset:active {
+            transform: scale(0.8);
+        }
+
+        .color-preset.selected {
+            border-color: #333;
+            transform: scale(1.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .horizontal input[type=range] {
+            width: 80px;
+        }
+
+        .vertical input[type=range] {
+            width: 80px;
+            transform: rotate(-90deg);
+            margin: 30px 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--active-color);
+            margin-top: -6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border: 2px solid white;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        #color-picker-native {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+
+        /* Sticky Close Button (Updated) */
+        .close-btn {
+            position: absolute;
+            left: -60px;
+            /* Slightly more space */
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1005;
+            background: rgba(255, 255, 255, 0.65);
+            /* More opaque */
+            backdrop-filter: blur(40px) saturate(200%);
+            /* Strong blur */
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            color: #000;
+            /* Deep black */
+            opacity: 0;
+            pointer-events: none;
+            /* Hidden by default (collapsed) */
+            transition: opacity 0.2s, background 0.2s, color 0.2s, transform 0.2s;
+            width: 44px;
+            height: 44px;
+            /* Slightly larger */
+            border-radius: 50%;
+            /* Ensure circle */
+        }
+
+        .close-btn svg {
+            stroke: currentColor;
+            stroke-width: 1.5px;
+            /* Thicker stroke if using stroke-based icons, or just bold look */
+            filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
+            /* Slight halo for contrast */
+            width: 24px;
+            height: 24px;
+        }
+
+        #ui-island.expanded .close-btn {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .close-btn:hover {
+            background-color: rgba(255, 59, 48, 0.2);
+            /* Red tint */
+            color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        /* Adjust Island Content Padding */
+        #ui-island.expanded .island-content {
+            opacity: 1;
+            pointer-events: all;
+            transition-delay: 0.15s;
+            padding-left: 50px;
+            /* Space for sticky close button */
+            scroll-behavior: smooth;
+            /* Smooth scrolling */
+        }
+
+        svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .orb-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: #333;
+        }
+
+        #ui-island.collapsed .orb-icon {
+            opacity: 1;
+        }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-box {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(50px) saturate(180%);
+            -webkit-backdrop-filter: blur(50px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 32px;
+            padding: 30px;
+            width: 320px;
+            max-width: 85%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #111;
+        }
+
+        .modal-text {
+            margin: 0 0 28px 0;
+            color: #222;
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 700;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            transition: transform 0.1s;
+            outline: none;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-cancel {
+            background: rgba(0, 0, 0, 0.08);
+            color: #111;
+        }
+
+        .btn-confirm {
+            background: var(--danger-color);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 59, 48, 0.25);
+        }
+
+        /* --- CUSTOM PICKER --- */
+        #custom-picker-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1900;
+            display: none;
+        }
+
+        #custom-picker-overlay.active {
+            display: block;
+        }
+
+        #custom-picker-container {
+            position: absolute;
+            width: 260px;
+            background: var(--mcp-bg);
+            backdrop-filter: blur(15px) saturate(180%);
+            -webkit-backdrop-filter: blur(15px) saturate(180%);
+            border: 1px solid var(--mcp-border);
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+
+        #custom-picker-overlay.active #custom-picker-container {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: all;
+        }
+
+        .mcp-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mcp-sv-area {
+            width: 100%;
+            aspect-ratio: 16/10;
+            border-radius: 12px;
+            position: relative;
+            cursor: crosshair;
+            overflow: hidden;
+            background-color: red;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .mcp-sv-bg-white {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+        }
+
+        .mcp-sv-bg-black {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top, #000, rgba(0, 0, 0, 0));
+        }
+
+        .mcp-handle {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .mcp-sv-handle {
+            background: transparent;
+            width: 14px;
+            height: 14px;
+        }
+
+        .mcp-sliders-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mcp-preview-color {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+        }
+
+        .mcp-sliders-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mcp-slider-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .mcp-hue-track {
+            background: linear-gradient(to right, red, #ff0, lime, cyan, blue, #f0f, red);
+        }
+
+        .mcp-alpha-track {
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 8px 8px;
+            background-color: white;
+        }
+
+        .mcp-alpha-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 5px;
+            background: linear-gradient(to right, transparent, red);
+        }
+
+        .mcp-slider-handle {
+            background: white;
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .mcp-inputs-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .mcp-input-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .mcp-input-label {
+            font-size: 11px;
+            color: #111;
+            font-weight: 800;
+            margin-right: 4px;
+        }
+
+        .mcp-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-family: monospace;
+            font-size: 13px;
+            color: #000;
+            outline: none;
+            font-weight: 700;
+        }
+
+        .mcp-mode-btn {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            color: #000;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="custom-picker-overlay">
+        <div id="custom-picker-container"></div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title">Tuvali Temizle</h3>
+            <p class="modal-text">Bütün çizimi silmek istediğinize emin misiniz?</p>
+            <div class="modal-actions">
+                <button id="btn-modal-cancel" class="modal-btn btn-cancel">İptal</button>
+                <button id="btn-modal-confirm" class="modal-btn btn-confirm">Evet, Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-island" class="collapsed">
+        <div class="orb-icon">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+        </div>
+
+        <!-- Collapse Button (Outside Layout) -->
+        <button class="tool-btn close-btn" id="btn-collapse" title="Küçült">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+        </button>
+
+        <div class="island-content horizontal" id="island-content">
+            <!-- Tools -->
+            <button class="tool-btn" id="btn-undo" title="Geri Al">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-redo" title="İleri Al">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" />
+                </svg>
+            </button>
+
+            <!-- Colors -->
+            <div class="color-preset selected" style="background-color: #000000;" data-color="#000000"></div>
+            <div class="color-preset" style="background-color: #FF3B30;" data-color="#FF3B30"></div>
+            <div class="color-preset" style="background-color: #007AFF;" data-color="#007AFF"></div>
+
+            <button class="tool-btn" id="btn-color-picker" title="Renk Paleti (Basılı Tut)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                </svg>
+            </button>
+
+            <!-- Main Tools -->
+            <button class="tool-btn active" id="btn-pen" title="Kalem">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-marker" title="Keçeli Kalem">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M15.5 5.5l-6 6-4.5-4.5 6-6 4.5 4.5zm-8 8l6 6 4.5-4.5-6-6-4.5 4.5zM3 21h3.75L9.5 18.25l-2.75-2.75L2 20.5V21h1z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-airbrush" title="Sprey">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM10.5 5.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S8.17 4 9 4s1.5.67 1.5 1.5zm6 4c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S15.67 8 16.5 8s1.5.67 1.5 1.5zm-5 5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.67 13 11.5 13s1.5.67 1.5 1.5z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-rect" title="Kare">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 3h18v18H3V3zm16 16H5V5h14v14z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-circle" title="Daire">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-line" title="Çizgi">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3.5 18.49l15-15L20 4.99l-15 15z" />
+                </svg>
+            </button>
+            <button class="tool-btn" id="btn-text" title="Metin">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 4v3h5.5v12h3V7H19V4z" />
+                </svg>
+            </button>
+
+            <button class="tool-btn" id="btn-bucket" title="Doldur">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M16.56 8.94L7.62 0 6.21 1.41l2.38 2.38-5.15 5.15a1.49 1.49 0 0 0 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10l3.71-3.71 4.79 4.79L10 14.79 5.21 10zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5zM22 10l-6-6-1.41 1.41 4.24 4.24L22 10z" />
+                </svg>
+            </button>
+
+            <button class="tool-btn" id="btn-eraser" title="Silgi">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0zM4.22 15.58l3.54 3.54c.78.78 2.05.78 2.83 0l8.49-8.49-3.54-3.54-11.32 11.32zM16 19h5v2h-5z" />
+                </svg>
+            </button>
+
+            <!-- Size Slider -->
+            <input type="range" id="size-slider" min="1" max="50" value="5">
+            <input type="range" class="opacity-slider" id="opacity-slider" min="1" max="100" value="100" title="Opaklık"
+                style="display:none"> <!-- Future -->
+            <span class="size-indicator" id="size-val">5px</span>
+
+            <button class="tool-btn" id="btn-clear-all" style="color: var(--danger-color);" title="Temizle">
+                <svg viewBox="0 0 24 24">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- UTILS & CLASSES ---
+
+        class ModernColorPicker {
+            constructor(containerElement, initialColor = '#3b82f6') {
+                this.container = typeof containerElement === 'string' ? document.querySelector(containerElement) : containerElement;
+                if (!this.container) throw new Error('Container element not found');
+                this.state = { h: 210, s: 100, v: 100, a: 1, format: 'HEX' };
+                this.isDragging = { sv: false, hue: false, alpha: false };
+                this.onColorChangeCallback = null;
+                this.init(initialColor);
+            }
+            init(initialColor) { this.renderDOM(); this.bindEvents(); this.setColor(initialColor); }
+            renderDOM() {
+                this.container.innerHTML = `<div class="mcp-container"><div class="mcp-sv-area" id="mcp-sv"><div class="mcp-sv-bg-white"></div><div class="mcp-sv-bg-black"></div><div class="mcp-handle mcp-sv-handle" id="mcp-sv-handle"></div></div><div class="mcp-sliders-row"><div class="mcp-preview-color" id="mcp-preview"></div><div class="mcp-sliders-col"><div class="mcp-slider-track mcp-hue-track" id="mcp-hue"><div class="mcp-handle mcp-slider-handle" id="mcp-hue-handle"></div></div><div class="mcp-slider-track mcp-alpha-track" id="mcp-alpha"><div class="mcp-alpha-gradient" id="mcp-alpha-grad"></div><div class="mcp-handle mcp-slider-handle" id="mcp-alpha-handle"></div></div></div></div><div class="mcp-inputs-row"><div class="mcp-input-group"><span class="mcp-input-label" id="mcp-input-label">HEX</span><input type="text" class="mcp-input" id="mcp-input-val" spellcheck="false"></div><button class="mcp-mode-btn" id="mcp-mode-switch">RGB</button></div></div>`;
+                const q = (sel) => this.container.querySelector(sel);
+                this.ui = { sv: q('#mcp-sv'), svHandle: q('#mcp-sv-handle'), hue: q('#mcp-hue'), hueHandle: q('#mcp-hue-handle'), alpha: q('#mcp-alpha'), alphaGrad: q('#mcp-alpha-grad'), alphaHandle: q('#mcp-alpha-handle'), preview: q('#mcp-preview'), inputVal: q('#mcp-input-val'), inputLabel: q('#mcp-input-label'), modeSwitch: q('#mcp-mode-switch') };
+            }
+            bindEvents() {
+                const bindDrag = (el, type) => {
+                    const start = (e) => { e.preventDefault(); this.isDragging[type] = true; this.handleDrag(e, type); document.addEventListener('mousemove', move); document.addEventListener('mouseup', stop); document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', stop); };
+                    const move = (e) => { if (this.isDragging[type]) { e.preventDefault(); this.handleDrag(e, type); } };
+                    const stop = () => { this.isDragging[type] = false; document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', stop); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', stop); };
+                    el.addEventListener('mousedown', start); el.addEventListener('touchstart', start, { passive: false });
+                };
+                bindDrag(this.ui.sv, 'sv'); bindDrag(this.ui.hue, 'hue'); bindDrag(this.ui.alpha, 'alpha');
+                this.ui.inputVal.addEventListener('change', (e) => this.handleInputChange(e.target.value));
+                this.ui.modeSwitch.addEventListener('click', () => { this.state.format = this.state.format === 'HEX' ? 'RGB' : 'HEX'; this.ui.inputLabel.textContent = this.state.format; this.updateUIInputs(); });
+            }
+            handleDrag(e, type) {
+                const rect = this.ui[type].getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+                const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+                if (type === 'sv') { this.state.s = x * 100; this.state.v = 100 - (y * 100); }
+                else if (type === 'hue') { this.state.h = x * 360; }
+                else if (type === 'alpha') { this.state.a = parseFloat(x.toFixed(2)); }
+                this.updateUI();
+            }
+            updateUI() {
+                this.ui.svHandle.style.left = `${this.state.s}%`; this.ui.svHandle.style.top = `${100 - this.state.v}%`;
+                this.ui.hueHandle.style.left = `${(this.state.h / 360) * 100}%`; this.ui.alphaHandle.style.left = `${this.state.a * 100}%`;
+                this.ui.sv.style.backgroundColor = `hsl(${this.state.h}, 100%, 50%)`;
+                const rgb = this.HSVtoRGB(this.state.h, this.state.s, this.state.v);
+                this.ui.alphaGrad.style.background = `linear-gradient(to right, rgba(${rgb.r},${rgb.g},${rgb.b},0), rgba(${rgb.r},${rgb.g},${rgb.b},1))`;
+                const css = this.getColorString('rgba');
+                this.ui.svHandle.style.backgroundColor = css; this.ui.preview.style.backgroundColor = css;
+                if (!this.ui.inputVal.matches(':focus')) this.updateUIInputs();
+                if (this.onColorChangeCallback) this.onColorChangeCallback(this.getColorString());
+            }
+            updateUIInputs() {
+                if (this.state.format === 'HEX') { this.ui.inputVal.value = this.getColorString('hex'); this.ui.inputLabel.textContent = 'HEX'; }
+                else { this.ui.inputVal.value = this.getColorString('rgba'); this.ui.inputLabel.textContent = 'RGB'; }
+            }
+            handleInputChange(val) {
+                if (val.startsWith('#') || (val.length >= 3 && !val.includes('rgb'))) {
+                    const rgb = this.hexToRgb(val); if (rgb) { Object.assign(this.state, this.RGBtoHSV(rgb.r, rgb.g, rgb.b)); this.updateUI(); }
+                }
+            }
+            setColor(c) { this.handleInputChange(c); }
+            getColorString(fmt = this.state.format.toLowerCase()) { const { r, g, b } = this.HSVtoRGB(this.state.h, this.state.s, this.state.v); return fmt === 'hex' ? this.rgbToHex(r, g, b) : `rgba(${r},${g},${b},${this.state.a})`; }
+            HSVtoRGB(h, s, v) { s /= 100; v /= 100; let c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c, r, g, b; if (h < 60) { r = c; g = x; b = 0 } else if (h < 120) { r = x; g = c; b = 0 } else if (h < 180) { r = 0; g = c; b = x } else if (h < 240) { r = 0; g = x; b = c } else if (h < 300) { r = x; g = 0; b = c } else { r = c; g = 0; b = x } return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) }; }
+            RGBtoHSV(r, g, b) { r /= 255; g /= 255; b /= 255; let max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, v = max, d = max - min; s = max === 0 ? 0 : d / max; if (max === min) h = 0; else { switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break; }h /= 6; } return { h: h * 360, s: s * 100, v: v * 100 }; }
+            rgbToHex(r, g, b) { return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`.toUpperCase(); }
+            hexToRgb(h) { const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : null; }
+        }
+
+        // --- APP MODULES ---
+
+        class CanvasManager {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.width = 0; this.height = 0;
+                this.resize();
+                window.addEventListener('resize', () => {
+                    const temp = this.canvas.toDataURL();
+                    this.resize();
+                    const img = new Image(); img.src = temp;
+                    img.onload = () => this.ctx.drawImage(img, 0, 0);
+                });
+            }
+            resize() {
+                this.width = window.innerWidth; this.height = window.innerHeight;
+                this.canvas.width = this.width; this.canvas.height = this.height;
+                // Preserve white background logic if needed, but transparent is standard for layers.
+                // App seems to want white bg.
+                this.ctx.fillStyle = "#ffffff"; this.ctx.fillRect(0, 0, this.width, this.height);
+                this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round';
+            }
+            clear() {
+                this.ctx.fillStyle = "#ffffff"; this.ctx.fillRect(0, 0, this.width, this.height);
+            }
+            getSnapshot() { return this.canvas.toDataURL(); }
+            loadSnapshot(url) {
+                return new Promise(resolve => {
+                    const img = new Image(); img.src = url;
+                    img.onload = () => {
+                        this.ctx.clearRect(0, 0, this.width, this.height);
+                        this.ctx.drawImage(img, 0, 0); resolve();
+                    };
+                });
+            }
+        }
+
+        class HistoryManager {
+            constructor(canvasManager) {
+                this.cm = canvasManager;
+                this.history = [];
+                this.step = -1;
+                this.maxStep = 20;
+            }
+            push() {
+                this.step++;
+                if (this.step < this.history.length) this.history.length = this.step;
+                this.history.push(this.cm.getSnapshot());
+                if (this.history.length > this.maxStep) { this.history.shift(); this.step--; }
+                this.updateUI();
+                this.saveStorage();
+            }
+            undo() {
+                if (this.step > 0) {
+                    this.step--;
+                    this.cm.loadSnapshot(this.history[this.step]).then(() => this.saveStorage());
+                    this.updateUI();
+                }
+            }
+            redo() {
+                if (this.step < this.history.length - 1) {
+                    this.step++;
+                    this.cm.loadSnapshot(this.history[this.step]).then(() => this.saveStorage());
+                    this.updateUI();
+                }
+            }
+            updateUI() {
+                document.getElementById('btn-undo').disabled = (this.step <= 0);
+                document.getElementById('btn-redo').disabled = (this.step >= this.history.length - 1);
+            }
+            saveStorage() {
+                if (this.step >= 0) localStorage.setItem('smartCanvas_img', this.history[this.step]);
+            }
+            loadStorage() {
+                const data = localStorage.getItem('smartCanvas_img');
+                if (data) {
+                    this.cm.loadSnapshot(data).then(() => this.push());
+                } else {
+                    this.push();
+                }
+            }
+        }
+
+        class Tool {
+            constructor(app) { this.app = app; this.ctx = app.canvas.ctx; }
+            onDown(x, y, e) { }
+            onMove(x, y, e) { }
+            onUp(x, y, e) { }
+            activate() { }
+        }
+
+        class PenTool extends Tool {
+            activate() { this.ctx.globalCompositeOperation = 'source-over'; }
+            onDown(x, y) {
+                this.ctx.beginPath();
+                this.ctx.lineWidth = this.app.state.lineWidth;
+                this.ctx.strokeStyle = this.app.state.color;
+                this.ctx.moveTo(x, y);
+            }
+            onMove(x, y) { this.ctx.lineTo(x, y); this.ctx.stroke(); this.ctx.beginPath(); this.ctx.moveTo(x, y); }
+        }
+
+        class EraserTool extends Tool {
+            activate() { this.ctx.globalCompositeOperation = 'source-over'; this.ctx.globalAlpha = 1; }
+            onDown(x, y) {
+                this.ctx.beginPath();
+                this.ctx.lineWidth = this.app.state.lineWidth;
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.moveTo(x, y);
+            }
+            onMove(x, y) { this.ctx.lineTo(x, y); this.ctx.stroke(); this.ctx.beginPath(); this.ctx.moveTo(x, y); }
+        }
+
+        class MarkerTool extends Tool {
+            activate() { this.ctx.globalCompositeOperation = 'multiply'; this.ctx.globalAlpha = 0.5; } // Multiply for layering effect
+            onDown(x, y) {
+                this.ctx.beginPath();
+                this.ctx.lineWidth = this.app.state.lineWidth * 2; // Thicker
+                this.ctx.strokeStyle = this.app.state.color;
+                this.ctx.moveTo(x, y);
+            }
+            onMove(x, y) { this.ctx.lineTo(x, y); this.ctx.stroke(); this.ctx.beginPath(); this.ctx.moveTo(x, y); }
+            onUp() { this.ctx.globalCompositeOperation = 'source-over'; this.ctx.globalAlpha = 1; }
+        }
+
+        class AirbrushTool extends Tool {
+            activate() { this.ctx.globalCompositeOperation = 'source-over'; this.ctx.globalAlpha = 1; }
+            onDown(x, y) { this.painting = true; this.draw(x, y); }
+            onMove(x, y) { if (this.painting) this.draw(x, y); }
+            onUp() { this.painting = false; }
+            draw(x, y) {
+                const density = 20; const radius = this.app.state.lineWidth * 2;
+                this.ctx.fillStyle = this.app.state.color;
+                for (let i = 0; i < density; i++) {
+                    const dx = (Math.random() * 2 - 1) * radius; const dy = (Math.random() * 2 - 1) * radius;
+                    if (dx * dx + dy * dy <= radius * radius) this.ctx.fillRect(x + dx, y + dy, 1, 1);
+                }
+            }
+        }
+
+        class BucketTool extends Tool {
+            onDown(x, y) {
+                const rgb = this.hexToRgb(this.app.state.color);
+                this.floodFill(Math.floor(x), Math.floor(y), rgb);
+                this.app.history.push(); // Bucket pushes itself
+            }
+            hexToRgb(hex) { const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r ? { r: parseInt(r[1], 16), g: parseInt(r[2], 16), b: parseInt(r[3], 16) } : { r: 0, g: 0, b: 0 }; }
+            floodFill(startX, startY, color) {
+                const w = this.app.canvas.width; const h = this.app.canvas.height;
+                const imgData = this.ctx.getImageData(0, 0, w, h); const data = imgData.data;
+                const srcPos = (startY * w + startX) * 4;
+                const [sr, sg, sb] = [data[srcPos], data[srcPos + 1], data[srcPos + 2]];
+                if (sr === color.r && sg === color.g && sb === color.b) return;
+                const stack = [[startX, startY]];
+                while (stack.length) {
+                    const [x, y] = stack.pop();
+                    const pos = (y * w + x) * 4;
+                    if (x < 0 || x >= w || y < 0 || y >= h) continue;
+                    if (data[pos] !== sr || data[pos + 1] !== sg || data[pos + 2] !== sb) continue;
+                    data[pos] = color.r; data[pos + 1] = color.g; data[pos + 2] = color.b; data[pos + 3] = 255;
+                    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+                }
+                this.ctx.putImageData(imgData, 0, 0);
+            }
+        }
+
+        class ShapeTool extends Tool {
+            constructor(app, type) { super(app); this.type = type; this.startData = null; this.startX = 0; this.startY = 0; }
+            onDown(x, y) {
+                this.startX = x; this.startY = y;
+                this.startData = this.ctx.getImageData(0, 0, this.app.canvas.width, this.app.canvas.height);
+            }
+            onMove(x, y) {
+                if (!this.startData) return;
+                this.ctx.putImageData(this.startData, 0, 0);
+                this.ctx.beginPath();
+                this.ctx.lineWidth = this.app.state.lineWidth;
+                this.ctx.strokeStyle = this.app.state.color;
+                this.draw(x, y);
+                this.ctx.stroke();
+            }
+            draw(x, y) {
+                if (this.type === 'rect') {
+                    const w = x - this.startX; const h = y - this.startY;
+                    this.ctx.strokeRect(this.startX, this.startY, w, h); // Use strokeRect for cleaner lines
+                } else if (this.type === 'circle') {
+                    const r = Math.sqrt(Math.pow(x - this.startX, 2) + Math.pow(y - this.startY, 2));
+                    this.ctx.arc(this.startX, this.startY, r, 0, 2 * Math.PI);
+                } else if (this.type === 'line') {
+                    this.ctx.moveTo(this.startX, this.startY); this.ctx.lineTo(x, y);
+                }
+            }
+        }
+
+        class TextTool extends Tool {
+            onDown(x, y) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.style.position = 'absolute';
+                input.style.left = (x + this.app.canvas.canvas.getBoundingClientRect().left) + 'px';
+                input.style.top = (y + this.app.canvas.canvas.getBoundingClientRect().top) + 'px';
+                input.style.background = 'transparent';
+                input.style.border = '1px dashed #333';
+                input.style.outline = 'none';
+                input.style.font = `${this.app.state.lineWidth * 3 + 10}px sans-serif`;
+                input.style.color = this.app.state.color;
+                input.style.zIndex = 2000;
+                document.body.appendChild(input);
+                input.focus();
+
+                const finalize = () => {
+                    if (input.value) {
+                        this.ctx.font = input.style.font;
+                        this.ctx.fillStyle = this.app.state.color;
+                        this.ctx.fillText(input.value, x, y + parseInt(input.style.font));
+                        this.app.history.push();
+                    }
+                    input.remove();
+                };
+                input.addEventListener('blur', finalize);
+                input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finalize(); });
+            }
+        }
+
+        class App {
+            constructor() {
+                this.canvas = new CanvasManager();
+                this.history = new HistoryManager(this.canvas);
+                this.state = { color: '#000000', customColor: '#000000', lineWidth: 5, tool: 'pen' };
+                this.tools = {
+                    pen: new PenTool(this),
+                    marker: new MarkerTool(this),
+                    airbrush: new AirbrushTool(this),
+                    eraser: new EraserTool(this),
+                    bucket: new BucketTool(this),
+                    rect: new ShapeTool(this, 'rect'),
+                    circle: new ShapeTool(this, 'circle'),
+                    line: new ShapeTool(this, 'line'),
+                    text: new TextTool(this)
+                };
+                this.currentTool = this.tools.pen;
+                this.isDrawing = false;
+
+                this.initUI();
+                this.bindEvents();
+                this.history.loadStorage();
+
+                // Initial Active
+                document.getElementById('btn-pen').classList.add('active');
+            }
+
+            setTool(name) {
+                this.state.tool = name;
+                this.currentTool = this.tools[name];
+                if (this.currentTool.activate) this.currentTool.activate();
+
+                // UI Update
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                const btnId = 'btn-' + name;
+                const btn = document.getElementById(btnId);
+                if (btn) btn.classList.add('active');
+            }
+
+            setColor(color, isCustom = false) {
+                this.state.color = color;
+                if (isCustom) this.state.customColor = color;
+                if (this.state.tool === 'eraser') this.setTool('pen');
+
+                document.querySelectorAll('.color-preset').forEach(p => {
+                    if (p.dataset.color === color) p.classList.add('selected'); else p.classList.remove('selected');
+                });
+                const pickerBtn = document.getElementById('btn-color-picker');
+                if (!document.querySelector('.color-preset.selected')) {
+                    pickerBtn.classList.add('active');
+                    pickerBtn.style.color = this.state.customColor;
+                } else {
+                    pickerBtn.classList.remove('active');
+                    pickerBtn.style.color = '#333';
+                }
+            }
+
+            bindEvents() {
+                const cvs = this.canvas.canvas;
+                const start = (e) => {
+                    if (e.target.closest('#ui-island') || e.target.closest('.modal-overlay') || e.target.closest('#custom-picker-overlay')) return;
+                    e.preventDefault();
+                    this.isDrawing = true;
+                    const { x, y } = this.getXY(e);
+                    this.currentTool.onDown(x, y, e);
+                };
+                const move = (e) => {
+                    if (!this.isDrawing) return;
+                    e.preventDefault();
+                    const { x, y } = this.getXY(e);
+                    this.currentTool.onMove(x, y, e);
+                };
+                const end = (e) => {
+                    if (!this.isDrawing) return;
+                    this.isDrawing = false;
+                    const { x, y } = this.getXY(e);
+                    if (this.currentTool.onUp) this.currentTool.onUp(x, y, e);
+                    if (this.state.tool !== 'bucket') this.history.push(); // Bucket pushes itself
+                };
+
+                cvs.addEventListener('mousedown', start); document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
+                cvs.addEventListener('touchstart', start, { passive: false }); document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', end);
+            }
+
+            getXY(e) {
+                const r = this.canvas.canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            }
+
+            initUI() {
+                // Island Drag Logic (Simplified version of original)
+                const island = document.getElementById('ui-island');
+                let isCollapsed = true;
+                let ix = window.innerWidth / 2 - 30, iy = window.innerHeight - 100;
+                island.style.transform = `translate(${ix}px, ${iy}px)`;
+
+                // Collapse/Expand
+                const toggleIsland = (forceCollapse) => {
+                    const content = document.getElementById('island-content');
+                    if (forceCollapse || !isCollapsed) {
+                        isCollapsed = true;
+                        island.classList.add('collapsed'); island.classList.remove('expanded');
+                        island.style.width = '60px'; island.style.height = '60px';
+                        // Center island on its previous center
+                        const currentRect = island.getBoundingClientRect();
+                        const cx = currentRect.left + currentRect.width / 2;
+                        const cy = currentRect.top + currentRect.height / 2;
+                        ix = cx - 30; iy = cy - 30;
+                        island.style.transform = `translate(${ix}px, ${iy}px)`;
+                    } else {
+                        isCollapsed = false;
+                        island.classList.remove('collapsed'); island.classList.add('expanded');
+                        // horizontal by default
+                        content.classList.remove('vertical'); content.classList.add('horizontal');
+                        const w = 720, h = 80; // WIDER for new tools
+                        island.style.width = `${w}px`; island.style.height = `${h}px`;
+                        island.style.transform = `translate(${ix - w / 2 + 30}px, ${iy - h / 2 + 30}px)`;
+                    }
+                };
+
+                // Dragging
+                let isDown = false, moved = false, dx = 0, dy = 0;
+                island.addEventListener('mousedown', (e) => { if (e.target.closest('.tool-btn')) return; isDown = true; moved = false; dx = e.clientX - ix; dy = e.clientY - iy; island.style.transition = 'none'; });
+                window.addEventListener('mousemove', (e) => { if (!isDown) return; const nx = e.clientX - dx, ny = e.clientY - dy; if (Math.abs(nx - ix) > 5 || Math.abs(ny - iy) > 5) moved = true; if (isCollapsed) { ix = nx; iy = ny; island.style.transform = `translate(${ix}px, ${iy}px)`; } });
+                window.addEventListener('mouseup', () => { if (!isDown) return; isDown = false; island.style.transition = 'width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.1s linear'; if (!moved && isCollapsed) toggleIsland(false); });
+
+                document.getElementById('btn-collapse').addEventListener('click', (e) => { e.stopPropagation(); toggleIsland(true); });
+
+                // Mouse Wheel Scroll (Smooth)
+                const content = document.getElementById('island-content');
+                content.addEventListener('wheel', (e) => {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        content.scrollBy({
+                            left: e.deltaY * 1.5, // Faster scroll multiplier
+                            behavior: 'smooth'
+                        });
+                    }
+                }, { passive: false });
+
+                // Tools
+                document.getElementById('btn-undo').addEventListener('click', () => this.history.undo());
+                document.getElementById('btn-redo').addEventListener('click', () => this.history.redo());
+
+                // Tool Bindings
+                document.getElementById('btn-pen').addEventListener('click', () => this.setTool('pen'));
+                document.getElementById('btn-marker').addEventListener('click', () => this.setTool('marker'));
+                document.getElementById('btn-airbrush').addEventListener('click', () => this.setTool('airbrush'));
+                document.getElementById('btn-bucket').addEventListener('click', () => this.setTool('bucket'));
+                document.getElementById('btn-eraser').addEventListener('click', () => this.setTool('eraser'));
+                document.getElementById('btn-rect').addEventListener('click', () => this.setTool('rect'));
+                document.getElementById('btn-circle').addEventListener('click', () => this.setTool('circle'));
+                document.getElementById('btn-line').addEventListener('click', () => this.setTool('line'));
+                document.getElementById('btn-text').addEventListener('click', () => this.setTool('text'));
+
+                document.getElementById('btn-clear-all').addEventListener('click', () => document.getElementById('confirm-modal').classList.add('active'));
+
+                // Colors
+                document.querySelectorAll('.color-preset').forEach(p => p.addEventListener('click', (e) => this.setColor(e.target.dataset.color)));
+
+                // Size
+                document.getElementById('size-slider').addEventListener('input', (e) => {
+                    this.state.lineWidth = parseInt(e.target.value);
+                    document.getElementById('size-val').textContent = this.state.lineWidth + 'px';
+                });
+
+                // Clear
+                document.getElementById('btn-modal-cancel').addEventListener('click', () => document.getElementById('confirm-modal').classList.remove('active'));
+                document.getElementById('btn-modal-confirm').addEventListener('click', () => { this.canvas.clear(); this.history.push(); document.getElementById('confirm-modal').classList.remove('active'); });
+
+                // Custom Picker
+                const picker = new ModernColorPicker('#custom-picker-container');
+                picker.onColorChangeCallback = (c) => this.setColor(c, true);
+                const pBtn = document.getElementById('btn-color-picker');
+                const pOverlay = document.getElementById('custom-picker-overlay');
+                pBtn.addEventListener('click', () => {
+                    pOverlay.classList.add('active');
+                    picker.setColor(this.state.customColor);
+                    // Simple centering logic
+                    const rect = pBtn.getBoundingClientRect();
+                    const container = document.getElementById('custom-picker-container');
+                    container.style.top = (rect.top - 360) + 'px'; // Above
+                    container.style.left = (rect.left - 100) + 'px';
+                });
+                pOverlay.addEventListener('click', (e) => { if (e.target === pOverlay) pOverlay.classList.remove('active'); });
+            }
+        }
+
+        // --- BOOTSTRAP ---
+        window.APP = new App();
+
+    </script>
+</body>
+
+</html>

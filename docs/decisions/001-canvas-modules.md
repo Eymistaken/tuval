@@ -1,0 +1,27 @@
+# ADR-001: Retain Canvas 2D and use browser-native modules
+
+## Status
+
+Accepted
+
+## Date
+
+2026-10-01
+
+## Context
+
+The original application combines markup, styling, drawing tools, pointer handling, and persistence in one HTML file. Its centered overflowing toolbar hides controls; line-to-line pen drawing creates angular strokes; touch-end handling reads an empty touches list. Resize clears and then asynchronously restores the displayed canvas, which can crop artwork and race with new strokes.
+
+## Decision
+
+Keep Canvas 2D and split the app into focused JavaScript modules, built with Vite. Store artwork in a separate retained document canvas and resize only the presentation canvas. Handle input with one captured pointer and quadratic midpoint curves. Use a preview layer to apply opacity once per committed stroke. Keep synchronous bounded history, and save PNG blobs asynchronously in IndexedDB with logical document dimensions.
+
+## Alternatives considered
+
+Extracting the existing inline script and styles would improve file organization but preserve unreliable input and resize behavior. Rewriting the interface with React would add runtime weight and a second state model without benefiting Canvas rendering. Both alternatives were rejected for this scope.
+
+## Consequences
+
+There are no runtime dependencies, and drawing primitives can be tested independently. The complete document survives rotation and workspace changes. Translucent strokes are uniform, and canceled operations do not enter history. Memory bounds reduce the number of undo entries on large documents. A very long freehand stroke still requires preview redraws, batched once per animation frame.
+
+Legacy localStorage migration requires the same browser origin. The new public address cannot read drawings saved by a standalone local HTML file. PNG export provides a portable copy of new drawings.
