@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { verifyRefraction } from './glass-helper.js';
 
 test('iPad Safari draws, restores history, and retains a canvas across rotation', async ({ page }) => {
   const errors = [];
@@ -37,5 +38,6 @@ test('iPad Safari draws, restores history, and retains a canvas across rotation'
   await expect(page.locator('#dock')).toHaveAttribute('data-orientation', 'vertical');
   await page.locator('#btn-eraser').tap();
   await expect(page.locator('#btn-eraser')).toHaveAttribute('aria-pressed', 'true');
+  await verifyRefraction(page);
   expect(errors).toEqual([]);
 });

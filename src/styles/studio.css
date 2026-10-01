@@ -38,6 +38,12 @@ a { color: inherit; }
 .loading-state { position: absolute; inset: 0; display: grid; place-items: center; background: white; color: var(--muted); font-size: 13px; }
 .dock { position: fixed; z-index: 5; left: 0; top: 0; transform-origin: 0 0; width: min(1190px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); padding: 7px 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 8px 28px oklch(0.2 0.01 250 / 0.14), inset 0 1px 0 white; }
 .dock-content { display: flex; align-items: center; gap: 8px; }
+.dock-content, .dock-orb > span { position: relative; z-index: 2; }
+.glass-definitions { position: absolute; width: 0; height: 0; pointer-events: none; }
+.glass-refraction { position: absolute; left: -12px; top: -12px; z-index: 0; pointer-events: none; }
+.dock::before, .dock-orb::before { content: ''; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none; background: linear-gradient(155deg, oklch(1 0 0 / 0.52), oklch(0.98 0.008 250 / 0.32) 45%, oklch(1 0 0 / 0.42)); }
+.dock::after, .dock-orb::after { content: ''; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none; background: radial-gradient(ellipse at var(--glass-light-x, 25%) 0%, oklch(1 0 0 / 0.65), transparent 62%); box-shadow: inset 0 1px 1px oklch(1 0 0 / 0.95), inset 1px 0 1px oklch(1 0 0 / 0.62), inset 0 -1px 1px oklch(0.3 0.015 250 / 0.18); }
+.dock[data-state='opening'] .glass-refraction, .dock[data-state='closing'] .glass-refraction { visibility: hidden; }
 .dock[data-state='opening'] .dock-content, .dock[data-state='closing'] .dock-content { pointer-events: none; }
 .tools-group { flex: 1; min-width: 0; }
 .tool-navigation { display: flex; align-items: center; gap: 2px; }
@@ -52,6 +58,7 @@ a { color: inherit; }
 .color-controls, .color-presets, .brush-controls, .dock-actions { display: flex; align-items: center; }
 .color-swatch { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; background: transparent; padding: 9px; border-radius: 50%; }
 .color-swatch .swatch-fill { width: 24px; height: 24px; border-radius: 50%; forced-color-adjust: none; }
+.dock .color-swatch .swatch-fill { box-shadow: 0 0 0 1px oklch(1 0 0 / 0.6), 0 1px 3px oklch(0.2 0.01 250 / 0.16); }
 .color-swatch[aria-pressed='true'] .swatch-fill { outline: 2px solid var(--accent); outline-offset: 3px; }
 .color-swatch:hover { background: var(--studio); }
 .custom-color-button[aria-pressed='true'] { background: var(--selected); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -67,7 +74,8 @@ input[type='range']::-webkit-slider-runnable-track { background: var(--line); he
 input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; background: var(--accent); border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
 input[type='range']::-moz-range-track { background: var(--line); height: 4px; border-radius: 4px; }
 input[type='range']::-moz-range-thumb { width: 13px; height: 13px; background: var(--accent); border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
-.dock-orb { position: fixed; z-index: 5; left: 0; top: 0; height: 52px; width: 52px; display: grid; place-items: center; color: var(--surface); background: var(--accent); border: 1px solid oklch(1 0 0 / 0.5); border-radius: 50%; box-shadow: 0 6px 22px oklch(0.2 0.01 250 / 0.2), inset 0 1px 1px oklch(1 0 0 / 0.4); touch-action: none; cursor: grab; }
+.dock-orb { position: fixed; z-index: 5; left: 0; top: 0; height: 52px; width: 52px; display: grid; place-items: center; overflow: hidden; color: var(--surface); background: var(--accent); border: 1px solid oklch(1 0 0 / 0.5); border-radius: 50%; box-shadow: 0 6px 22px oklch(0.2 0.01 250 / 0.2), inset 0 1px 1px oklch(1 0 0 / 0.4); touch-action: none; cursor: grab; }
+.dock-orb::before { background: linear-gradient(145deg, oklch(0.56 0.2 255 / 0.85), oklch(0.43 0.19 255 / 0.9)); }
 .dock-orb:active { cursor: grabbing; }
 .save-status[data-state='error'] { position: fixed; z-index: 6; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 8px 12px; border-radius: 8px; background: var(--surface); color: var(--danger); font-size: 11px; pointer-events: none; }
 .studio-dialog { border: 1px solid var(--line); border-radius: 20px; width: min(410px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; color: var(--ink); background: var(--surface); box-shadow: 0 18px 65px oklch(0.2 0.01 155 / 0.16); }
@@ -163,15 +171,24 @@ kbd { border: 1px solid var(--line); background: var(--studio); border-radius: 4
 .dock[data-orientation='vertical'] .brush-controls output { display: block; width: auto; }
 .dock[data-orientation='vertical'] .dock-actions { display: grid; grid-template-columns: 44px 44px; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .dock, .studio-dialog, .text-editor { background: linear-gradient(145deg, oklch(1 0 0 / 0.82), oklch(0.98 0.003 250 / 0.68)); border-color: oklch(1 0 0 / 0.8); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); }
-  .dock-orb { background: linear-gradient(145deg, oklch(0.57 0.19 255 / 0.95), oklch(0.46 0.19 255 / 0.9)); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
+  .dock, .dock-orb { background: oklch(0.98 0.005 250 / 0.16); border-color: oklch(1 0 0 / 0.85); backdrop-filter: blur(8px) saturate(150%); -webkit-backdrop-filter: blur(8px) saturate(150%); box-shadow: 0 12px 32px oklch(0.2 0.015 250 / 0.16), 0 2px 6px oklch(0.2 0.015 250 / 0.08); }
+  .studio-dialog, .text-editor { background: linear-gradient(145deg, oklch(1 0 0 / 0.9), oklch(0.98 0.003 250 / 0.82)); border-color: oklch(1 0 0 / 0.85); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%); }
 }
+.dock .tool-button, .dock .icon-button, .dock .scroll-button, .dock .custom-color-button { background: oklch(1 0 0 / 0.3); }
+.dock .tool-button:hover, .dock .icon-button:not(:disabled):hover, .dock .scroll-button:hover, .dock .custom-color-button:hover { background: oklch(1 0 0 / 0.68); }
+.dock .tool-button[aria-pressed='true'] { background: var(--accent); }
+.dock .custom-color-button[aria-pressed='true'] { background: var(--selected); }
+.dock .scroll-button { background: oklch(1 0 0 / 0.8); }
+.dock .brush-controls output { color: var(--ink); background: oklch(1 0 0 / 0.75); border-radius: 6px; padding: 3px 0; }
 @media (prefers-reduced-transparency: reduce) {
   .dock, .studio-dialog, .text-editor { background: var(--surface); border-color: var(--line); backdrop-filter: none; -webkit-backdrop-filter: none; }
   .dock-orb { background: var(--accent); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass-refraction, .dock::before, .dock::after, .dock-orb::before, .dock-orb::after { display: none; }
 }
 @media (forced-colors: active) {
   .dock, .dock-orb, .studio-dialog, .text-editor { background: Canvas; color: CanvasText; border-color: ButtonText; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass-refraction, .dock::before, .dock::after, .dock-orb::before, .dock-orb::after { display: none; }
+  .dock .tool-button, .dock .icon-button, .dock .scroll-button, .dock .custom-color-button { background: ButtonFace; }
   .tool-button[aria-pressed='true'] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
 @media (prefers-reduced-motion: reduce) {

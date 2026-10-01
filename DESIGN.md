@@ -6,7 +6,7 @@ Someone opens a canvas to sketch immediately on a laptop or touchscreen. White p
 
 ## Color strategy
 
-Use translucent neutral glass with a fine highlight, backdrop blur, and a blue accent for the selected tool and focus. Reduced-transparency and forced-color settings use solid surfaces. Chrome uses OKLCH; drawing colors remain literal sRGB for predictable PNG output. SVG color samples preserve their actual fills under forced colors. The canvas, samples, and color-selection surface keep their drawing colors while other controls respect system contrast settings.
+Use clear neutral glass with a rounded refractive edge, layered light reflections, a fine lower rim, and a blue accent for the selected tool and focus. Local decorative canvases copy the artwork under the toolbar/button; inline SVG displacement maps bend only their edge band. These layers never affect saved or exported artwork. A faint white tint and control surfaces preserve readability over dark marks. Dialogs stay more opaque for reading. Reduced-transparency and forced-color settings use solid surfaces and disable decorative rendering. Chrome uses OKLCH; drawing colors remain literal sRGB for predictable PNG output. SVG color samples preserve their actual fills under forced colors. The canvas, samples, and color-selection surface keep their drawing colors while other controls respect system contrast settings.
 
 ## Typography
 

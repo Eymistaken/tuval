@@ -3,6 +3,7 @@ import { parseColor } from './engine/color.js';
 import { mountIcons } from './ui/icons.js';
 import { createToolbar, TOOLS } from './ui/toolbar.js';
 import { createColorPicker } from './ui/color-picker.js';
+import { createGlass } from './ui/glass.js';
 import { bindDialogs, openDialog, toast, createTextEditor } from './ui/dialogs.js';
 import { loadDrawing, saveDrawing, saveRecovery, loadSettings, saveSettings } from './storage.js';
 
@@ -18,6 +19,7 @@ let saveTimer;
 let saveQueue = Promise.resolve();
 let toolbar;
 let editor;
+let glass;
 let ready = false;
 
 function setStatus(message, state = 'saved') {
@@ -40,6 +42,7 @@ const engine = new DrawingEngine(canvas, {
     document.querySelector('#btn-redo').disabled = !canRedo;
   },
   onTextRequest(point) { editor?.open(point); },
+  onRender() { glass?.refresh(); },
 });
 
 function queueSave() {
@@ -80,6 +83,7 @@ function chooseColor(color, alpha = engine.options.alpha) {
 }
 
 toolbar = createToolbar({ onTool: chooseTool, onColor: chooseColor, onSize: (size) => updateOptions({ size }) });
+glass = createGlass(canvas);
 editor = createTextEditor((text, point) => engine.addText(text, point));
 const picker = createColorPicker(({ color, alpha }) => chooseColor(color, alpha));
 const saved = loadSettings();

@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { verifyRefraction } from './glass-helper.js';
+import { readFile } from 'node:fs/promises';
 
 async function collapseAndDrag(page, x, y) {
   await page.locator('#btn-collapse').click();
@@ -209,4 +211,55 @@ test('dragging during collapse finishes the canceled animation before moving', a
   await page.locator('#dock-orb').click();
   await expect(page.locator('#dock')).toHaveAttribute('data-state', 'open');
   await expect(page.locator('#dock')).toHaveAttribute('data-orientation', 'vertical');
+});
+
+test('liquid glass displaces the backdrop without changing the drawing', async ({ page, context }) => {
+  await verifyRefraction(page);
+  await page.emulateMedia({ forcedColors: 'active' });
+  await expect(page.locator('#dock > .glass-refraction')).toBeHidden();
+  await expect(page.locator('#btn-pen')).toBeVisible();
+  await page.emulateMedia({ forcedColors: 'none' });
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] });
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches)).toBe(true);
+  await expect(page.locator('#dock > .glass-refraction')).toBeHidden();
+});
+
+test('the glass backdrop follows drawing history and keeps its own pixels out of exports', async ({ page }) => {
+  const original = await page.locator('#dock').boundingBox();
+  await page.locator('#size-slider').evaluate((input) => { input.value = 50; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.locator('#btn-collapse').click();
+  await expect(page.locator('#dock')).toBeHidden();
+  await page.mouse.move(40, original.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(page.viewportSize().width - 40, original.y + 10, { steps: 20 });
+  await page.mouse.up();
+  await page.locator('#dock-orb').click();
+  await expect(page.locator('#dock')).toHaveAttribute('data-state', 'open');
+  const sample = () => page.locator('#dock > .glass-refraction').evaluate((canvas) => canvas.getContext('2d').getImageData(52, 22, 1, 1).data[0]);
+  await expect.poll(sample).toBe(32);
+  await page.locator('#btn-undo').click();
+  await expect.poll(sample).toBe(255);
+  await page.locator('#btn-redo').click();
+  await expect.poll(sample).toBe(32);
+  const before = await page.locator('#canvas').evaluate((canvas) => canvas.toDataURL());
+  const download = page.waitForEvent('download');
+  await page.locator('#btn-export').click();
+  const file = await download;
+  const png = (await readFile(await file.path())).toString('base64');
+  const exported = await page.evaluate(async ({ png, y }) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${png}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width; canvas.height = image.height;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0);
+    return context.getImageData(image.width / 2, y * image.width / innerWidth, 1, 1).data[0];
+  }, { png, y: original.y + 10 });
+  expect(exported).toBe(32);
+  expect(await page.locator('#canvas').evaluate((canvas, previous) => canvas.toDataURL() === previous, before)).toBe(true);
+  await page.locator('#btn-clear').click();
+  await page.locator('#clear-confirm').click();
+  await expect.poll(sample).toBe(255);
 });

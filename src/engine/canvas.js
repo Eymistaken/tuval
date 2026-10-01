@@ -13,11 +13,11 @@ const backingRatio = (width, height, requested) => Math.min(requested,
 
 /** A retained drawing document with an independently resized display and preview layer. */
 export class DrawingEngine {
-  constructor(canvas, { onChange = noOp, onHistoryChange = noOp, onTextRequest = noOp } = {}) {
+  constructor(canvas, { onChange = noOp, onHistoryChange = noOp, onTextRequest = noOp, onRender = noOp } = {}) {
     this.canvas = canvas;
     this.parent = canvas.parentElement;
     this.view = canvas.ownerDocument.defaultView;
-    this.callbacks = { onChange, onHistoryChange, onTextRequest };
+    this.callbacks = { onChange, onHistoryChange, onTextRequest, onRender };
     this.options = { tool: 'pen', color: '#202923', alpha: 1, size: 5, pressure: true, touchDrawing: true };
     this.destroyed = false;
     this.operation = null;
@@ -128,6 +128,7 @@ export class DrawingEngine {
       context.drawImage(this.layerCanvas, 0, 0, width, height);
     }
     context.restore();
+    this.callbacks.onRender();
   }
 
   toPoint(event, pressure = 1) {
