@@ -14,7 +14,9 @@ The original application combines markup, styling, drawing tools, pointer handli
 
 ## Decision
 
-Keep Canvas 2D and split the app into focused JavaScript modules, built with Vite. Store artwork in a separate retained document canvas and resize only the presentation canvas. Handle input with one captured pointer and quadratic midpoint curves. Use a preview layer to apply opacity once per committed stroke. Keep synchronous bounded history, and save PNG blobs asynchronously in IndexedDB with logical document dimensions.
+Keep Canvas 2D and split the app into focused JavaScript modules, built with Vite. Store artwork in a separate retained document canvas and resize only the presentation canvas. Handle input with one captured pointer and quadratic midpoint curves. Use a preview layer to apply opacity once per committed stroke. Keep synchronous bounded history, and save PNG bytes asynchronously in IndexedDB with logical document dimensions.
+
+Store the PNG as an ArrayBuffer because WebKit can reject Blob preparation in IndexedDB. Reconstruct a Blob when loading artwork and continue accepting earlier Blob records. Capture the image bytes before opening the write transaction, and serialize saves to preserve drawing order.
 
 ## Alternatives considered
 

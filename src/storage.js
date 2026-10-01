@@ -42,6 +42,7 @@ export async function loadDrawing() {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+    if (drawing?.png instanceof ArrayBuffer) drawing.blob = new Blob([drawing.png], { type: 'image/png' });
     if (drawing && (!(drawing.blob instanceof Blob) || drawing.blob.type !== 'image/png')) drawing = null;
   } catch { storageUnavailable = true; }
 
@@ -63,11 +64,14 @@ export async function loadDrawing() {
 
 export async function saveDrawing(drawing) {
   const db = await database();
+  const { blob, ...metadata } = drawing;
+  // WebKit can reject Blob preparation in IndexedDB. PNG bytes clone consistently.
+  const png = await blob.arrayBuffer();
   await new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE, 'readwrite');
-    transaction.objectStore(STORE).put({ ...drawing, updatedAt: Date.now() }, 'current');
+    const request = transaction.objectStore(STORE).put({ ...metadata, png, updatedAt: Date.now() }, 'current');
+    request.onerror = () => reject(request.error);
     transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error('Saving was interrupted.'));
   });
   const recovery = readRecovery();

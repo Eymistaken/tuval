@@ -216,6 +216,34 @@ test('an intact legacy drawing restores even when IndexedDB is unavailable', asy
   await expect(page.locator('#save-status')).toHaveAttribute('data-state', 'error');
 });
 
+test('existing IndexedDB Blob records restore after the PNG byte migration', async ({ page }) => {
+  await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 60;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#cc2233';
+    context.fillRect(0, 0, 100, 60);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve));
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('tuval-studio', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction('drawings', 'readwrite');
+      transaction.objectStore('drawings').put({ blob, width: 100, height: 60, changedAt: Date.now() }, 'current');
+      transaction.oncomplete = resolve;
+      transaction.onabort = () => reject(transaction.error);
+    });
+    db.close();
+  });
+  await page.reload();
+  await expect(page.locator('#loading-state')).toBeHidden();
+  expect(await pixels(page)).toBeGreaterThan(1000);
+  await expect(page.locator('#canvas-dimensions')).toHaveText('100 × 60');
+});
+
 test('touch drawing finalizes without errors and ignores an extra finger', async ({ page, context }) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
