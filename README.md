@@ -14,7 +14,8 @@ Tuval is a full-screen drawing canvas that works with a mouse, finger, or stylus
 - Adjust brush size from 1 to 50, enable stylus pressure, or disable finger drawing.
 - Undo and redo; clear a drawing with confirmation and recover it with Undo.
 - Save, undo, redo, and clear from the floating bottom toolbar. There is no header or document-name display.
-- Collapse the toolbar and drag its pen button. Narrow screens have a swipeable tool row and navigation arrows.
+- Collapse the glass toolbar and drag its pen button. It animates open at that location, vertically at the sides or horizontally near the top and bottom. Scrollable tools and short-screen panels keep every control reachable.
+- Hold the right mouse button and drag to erase temporarily, then continue with the selected tool. Finger and stylus drawing keep their usual behavior.
 - Save a PNG of the full drawing, even after resizing or rotating the screen.
 
 ## Run locally
@@ -54,6 +55,7 @@ npm run check
 | Pen / Marker / Spray | `P` / `M` / `A` |
 | Rectangle / Circle / Line | `R` / `O` / `L` |
 | Text / Fill / Eraser | `T` / `F` / `E` |
+| Temporary eraser | Hold the right mouse button and drag |
 | Undo | `Ctrl+Z` |
 | Redo | `Ctrl+Shift+Z` or `Ctrl+Y` |
 | Save PNG | `Ctrl+S` |
@@ -85,7 +87,7 @@ tests/          Unit and browser regression tests
 
 The retained document canvas is independent of the displayed canvas. It grows when the viewport needs more room and never shrinks. Artwork keeps its logical size during rotation; regions outside the current viewport remain in the saved document and PNG export. Undo snapshots preserve their original coordinates after expansion. An opaque preview layer applies opacity once per stroke. Pointer capture and coalesced samples support smooth input; extra pointers are ignored and canceled strokes are discarded.
 
-[Architecture decision](docs/decisions/001-canvas-modules.md) · [Current design](docs/superpowers/specs/2026-10-01-minimal-canvas-design.md) · [Contributing](CONTRIBUTING.md)
+[Architecture decision](docs/decisions/001-canvas-modules.md) · [Current design](docs/superpowers/specs/2026-10-01-glass-dock-design.md) · [Contributing](CONTRIBUTING.md)
 
 ## Deployment
 

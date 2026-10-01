@@ -8,6 +8,10 @@
   --accent: oklch(0.5 0.18 255);
   --selected: oklch(0.94 0.025 255);
   --danger: oklch(0.47 0.15 28);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-synthesis: none;
   color: var(--ink);
@@ -30,9 +34,11 @@ a { color: inherit; }
 #canvas { display: block; background: white; cursor: crosshair; touch-action: none; forced-color-adjust: none; }
 #canvas[data-tool='text'] { cursor: text; }
 #canvas[data-tool='eraser'] { cursor: cell; }
+#canvas[data-temporary-eraser] { cursor: cell; }
 .loading-state { position: absolute; inset: 0; display: grid; place-items: center; background: white; color: var(--muted); font-size: 13px; }
-.dock { position: fixed; z-index: 5; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(1190px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); padding: 7px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 4px 18px oklch(0.2 0.01 250 / 0.12); }
+.dock { position: fixed; z-index: 5; left: 0; top: 0; transform-origin: 0 0; width: min(1190px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); padding: 7px 10px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 8px 28px oklch(0.2 0.01 250 / 0.14), inset 0 1px 0 white; }
 .dock-content { display: flex; align-items: center; gap: 8px; }
+.dock[data-state='opening'] .dock-content, .dock[data-state='closing'] .dock-content { pointer-events: none; }
 .tools-group { flex: 1; min-width: 0; }
 .tool-navigation { display: flex; align-items: center; gap: 2px; }
 .tool-list { display: flex; align-items: center; gap: 2px; overflow-x: auto; overflow-y: hidden; min-width: 0; flex: 1; padding: 4px; margin: -4px; scroll-padding: 4px; scrollbar-width: none; touch-action: pan-x; }
@@ -61,11 +67,11 @@ input[type='range']::-webkit-slider-runnable-track { background: var(--line); he
 input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -6px; background: var(--accent); border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
 input[type='range']::-moz-range-track { background: var(--line); height: 4px; border-radius: 4px; }
 input[type='range']::-moz-range-thumb { width: 13px; height: 13px; background: var(--accent); border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
-.dock-orb { position: fixed; z-index: 5; left: calc(50% - 26px); bottom: max(14px, env(safe-area-inset-bottom)); height: 52px; width: 52px; display: grid; place-items: center; color: var(--surface); background: var(--accent); border-radius: 50%; box-shadow: 0 4px 18px oklch(0.2 0.01 250 / 0.15); touch-action: none; cursor: grab; }
+.dock-orb { position: fixed; z-index: 5; left: 0; top: 0; height: 52px; width: 52px; display: grid; place-items: center; color: var(--surface); background: var(--accent); border: 1px solid oklch(1 0 0 / 0.5); border-radius: 50%; box-shadow: 0 6px 22px oklch(0.2 0.01 250 / 0.2), inset 0 1px 1px oklch(1 0 0 / 0.4); touch-action: none; cursor: grab; }
 .dock-orb:active { cursor: grabbing; }
 .save-status[data-state='error'] { position: fixed; z-index: 6; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 8px 12px; border-radius: 8px; background: var(--surface); color: var(--danger); font-size: 11px; pointer-events: none; }
 .studio-dialog { border: 1px solid var(--line); border-radius: 20px; width: min(410px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; color: var(--ink); background: var(--surface); box-shadow: 0 18px 65px oklch(0.2 0.01 155 / 0.16); }
-.studio-dialog::backdrop { background: oklch(0.25 0.01 155 / 0.24); }
+.studio-dialog::backdrop { background: oklch(0.25 0.01 155 / 0.24); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
 .dialog-heading .icon-button { margin: -9px -10px 0 0; }
 h2 { margin: 0; font-size: 23px; font-weight: 650; letter-spacing: -0.6px; }
@@ -126,7 +132,7 @@ kbd { border: 1px solid var(--line); background: var(--studio); border-radius: 4
   .toast { bottom: 140px; }
 }
 @media (max-width: 780px) {
-  .dock { width: min(420px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); bottom: max(10px, env(safe-area-inset-bottom)); padding: 6px 8px; border-radius: 24px; }
+  .dock { width: min(420px, calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); padding: 6px 8px; border-radius: 24px; }
   .dock-content { grid-template-columns: auto minmax(0, 1fr); gap: 3px 4px; }
   .color-swatch:nth-child(n+4) { display: none; }
   .brush-group { width: min(132px, 100%); }
@@ -138,11 +144,35 @@ kbd { border: 1px solid var(--line); background: var(--studio); border-radius: 4
   .color-slider-row { gap: 8px; }
   .toast { bottom: 184px; }
 }
-@media (forced-colors: active) {
-  .tool-button[aria-pressed='true'] { outline: 2px solid Highlight; outline-offset: -3px; }
-}
 @media (max-width: 360px) {
   .brush-controls output { display: none; }
+}
+.dock[data-orientation='vertical'] { width: 110px; height: min(740px, calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom))); padding: 8px; border-radius: 30px; }
+.dock[data-orientation='vertical'] .dock-content { display: flex; flex-direction: column; height: 100%; gap: 8px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: none; }
+.dock[data-orientation='vertical'] .dock-content::-webkit-scrollbar { display: none; }
+.dock[data-orientation='vertical'] .tools-group { flex: 1 0 132px; min-height: 132px; width: 100%; }
+.dock[data-orientation='vertical'] .tool-navigation { flex-direction: column; height: 100%; }
+.dock[data-orientation='vertical'] .tool-list { flex-direction: column; min-height: 44px; width: 52px; overflow-x: hidden; overflow-y: auto; touch-action: pan-y; }
+.dock[data-orientation='vertical'] .scroll-button { transform: rotate(90deg); }
+.dock[data-orientation='vertical'] .color-group, .dock[data-orientation='vertical'] .brush-group, .dock[data-orientation='vertical'] .dock-actions { flex: 0 0 auto; width: 100%; }
+.dock[data-orientation='vertical'] .color-controls { display: grid; grid-template-columns: 44px 44px; }
+.dock[data-orientation='vertical'] .color-presets { display: contents; }
+.dock[data-orientation='vertical'] .color-swatch:nth-child(n+4) { display: none; }
+.dock[data-orientation='vertical'] .brush-controls { display: grid; grid-template-columns: 1fr 44px; gap: 0; }
+.dock[data-orientation='vertical'] .brush-controls input { grid-column: 1 / -1; }
+.dock[data-orientation='vertical'] .brush-controls output { display: block; width: auto; }
+.dock[data-orientation='vertical'] .dock-actions { display: grid; grid-template-columns: 44px 44px; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dock, .studio-dialog, .text-editor { background: linear-gradient(145deg, oklch(1 0 0 / 0.82), oklch(0.98 0.003 250 / 0.68)); border-color: oklch(1 0 0 / 0.8); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); }
+  .dock-orb { background: linear-gradient(145deg, oklch(0.57 0.19 255 / 0.95), oklch(0.46 0.19 255 / 0.9)); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .dock, .studio-dialog, .text-editor { background: var(--surface); border-color: var(--line); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .dock-orb { background: var(--accent); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media (forced-colors: active) {
+  .dock, .dock-orb, .studio-dialog, .text-editor { background: Canvas; color: CanvasText; border-color: ButtonText; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .tool-button[aria-pressed='true'] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }

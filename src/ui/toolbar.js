@@ -1,4 +1,5 @@
 import { icon } from './icons.js';
+import { createDock } from './dock.js';
 
 export const TOOLS = [
   { id: 'pen', name: 'Pen', key: 'P' },
@@ -31,13 +32,13 @@ export function createToolbar({ onTool, onColor, onSize }) {
     if (button) onTool(button.dataset.tool);
   });
   list.addEventListener('keydown', (event) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const buttons = [...list.querySelectorAll('button')];
     let index = buttons.indexOf(document.activeElement);
     if (event.key === 'Home') index = 0;
     else if (event.key === 'End') index = buttons.length - 1;
-    else index = (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+    else index = (index + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1) + buttons.length) % buttons.length;
     buttons[index].focus({ preventScroll: true });
     buttons[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
@@ -50,70 +51,33 @@ export function createToolbar({ onTool, onColor, onSize }) {
 
   const previous = document.querySelector('#tools-previous');
   const next = document.querySelector('#tools-next');
+  const dock = document.querySelector('#dock');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  const scroll = (direction) => list.scrollBy({ left: direction * list.clientWidth * 0.75, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  const scroll = (direction) => {
+    const vertical = dock.dataset.orientation === 'vertical';
+    list.scrollBy({ [vertical ? 'top' : 'left']: direction * (vertical ? list.clientHeight : list.clientWidth) * 0.75, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  };
   previous.addEventListener('click', () => scroll(-1));
   next.addEventListener('click', () => scroll(1));
   const updateScroll = () => {
-    const availableWidth = list.parentElement.clientWidth + 2;
+    const vertical = dock.dataset.orientation === 'vertical';
+    list.setAttribute('aria-orientation', vertical ? 'vertical' : 'horizontal');
+    const available = (vertical ? list.parentElement.clientHeight : list.parentElement.clientWidth) + 2;
     const style = getComputedStyle(list);
-    const contentWidth = [...list.children].reduce((width, child) => width + child.offsetWidth, 0)
-      + parseFloat(style.columnGap) * (list.children.length - 1)
-      + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-    const overflow = contentWidth > availableWidth;
+    const contentSize = [...list.children].reduce((total, child) => total + (vertical ? child.offsetHeight : child.offsetWidth), 0)
+      + (parseFloat(vertical ? style.rowGap : style.columnGap) || 0) * (list.children.length - 1)
+      + parseFloat(vertical ? style.paddingTop : style.paddingLeft) + parseFloat(vertical ? style.paddingBottom : style.paddingRight);
+    const overflow = contentSize > available;
     previous.hidden = !overflow;
     next.hidden = !overflow;
-    previous.disabled = list.scrollLeft <= 1;
-    next.disabled = list.scrollLeft + list.clientWidth >= list.scrollWidth - 2;
+    const position = vertical ? list.scrollTop : list.scrollLeft;
+    previous.disabled = position <= 1;
+    next.disabled = position + (vertical ? list.clientHeight : list.clientWidth) >= (vertical ? list.scrollHeight : list.scrollWidth) - 2;
   };
   list.addEventListener('scroll', updateScroll, { passive: true });
   new ResizeObserver(updateScroll).observe(list);
 
-  const dock = document.querySelector('#dock');
-  const orb = document.querySelector('#dock-orb');
-  document.querySelector('#btn-collapse').addEventListener('click', () => {
-    dock.hidden = true;
-    orb.hidden = false;
-    orb.focus();
-  });
-  const showDock = () => {
-    dock.hidden = false;
-    orb.hidden = true;
-    list.querySelector('[aria-pressed="true"]').focus({ preventScroll: true });
-  };
-  let drag = null;
-  orb.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || drag) return;
-    const rect = orb.getBoundingClientRect();
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, moved: false };
-    orb.setPointerCapture(event.pointerId);
-  });
-  orb.addEventListener('pointermove', (event) => {
-    if (!drag || event.pointerId !== drag.id) return;
-    const dx = event.clientX - drag.x;
-    const dy = event.clientY - drag.y;
-    if (Math.hypot(dx, dy) > 5) drag.moved = true;
-    if (drag.moved) {
-      orb.style.left = `${Math.max(8, Math.min(innerWidth - orb.offsetWidth - 8, drag.left + dx))}px`;
-      orb.style.top = `${Math.max(8, Math.min(innerHeight - orb.offsetHeight - 8, drag.top + dy))}px`;
-      orb.style.bottom = 'auto';
-    }
-  });
-  orb.addEventListener('pointerup', (event) => {
-    if (!drag || event.pointerId !== drag.id) return;
-    const moved = drag.moved;
-    drag = null;
-    if (!moved) showDock();
-  });
-  orb.addEventListener('pointercancel', () => { drag = null; });
-  orb.addEventListener('lostpointercapture', () => { drag = null; });
-  orb.addEventListener('click', (event) => { if (event.detail === 0) showDock(); });
-  window.addEventListener('resize', () => {
-    if (!orb.style.top) return;
-    const rect = orb.getBoundingClientRect();
-    orb.style.left = `${Math.max(8, Math.min(innerWidth - orb.offsetWidth - 8, rect.left))}px`;
-    orb.style.top = `${Math.max(8, Math.min(innerHeight - orb.offsetHeight - 8, rect.top))}px`;
-  });
+  const controller = createDock({ onLayout: updateScroll });
 
   return {
     update(options) {
@@ -121,7 +85,7 @@ export function createToolbar({ onTool, onColor, onSize }) {
         button.setAttribute('aria-pressed', String(button.dataset.tool === options.tool));
       });
       const active = list.querySelector('[aria-pressed="true"]');
-      if (!dock.hidden) active?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (controller.expanded) active?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       presets.querySelectorAll('[data-color]').forEach((button) => {
         button.setAttribute('aria-pressed', String(button.dataset.color.toUpperCase() === options.color.toUpperCase()));
       });

@@ -4,6 +4,7 @@ export class PointerInput {
     this.canvas = canvas;
     this.callbacks = callbacks;
     this.active = null;
+    this.lastPointerType = 'mouse';
     this.view = canvas.ownerDocument.defaultView;
     this.listeners = {
       pointerdown: (event) => this.start(event),
@@ -11,6 +12,9 @@ export class PointerInput {
       pointerup: (event) => this.end(event),
       pointercancel: (event) => this.cancelEvent(event),
       lostpointercapture: (event) => this.cancelEvent(event),
+      contextmenu: (event) => {
+        if ((event.pointerType || this.lastPointerType) === 'mouse') event.preventDefault();
+      },
     };
     for (const [name, listener] of Object.entries(this.listeners)) canvas.addEventListener(name, listener);
     this.onBlur = () => this.cancel();
@@ -20,10 +24,11 @@ export class PointerInput {
   start(event) {
     if (this.active) return;
     const type = event.pointerType || 'mouse';
-    if (type === 'mouse' && event.button !== 0) return;
+    this.lastPointerType = type;
+    if (type === 'mouse' && ![0, 2].includes(event.button)) return;
     if (type === 'touch' && !this.callbacks.getOptions().touchDrawing) return;
     event.preventDefault();
-    this.active = { id: event.pointerId, type };
+    this.active = { id: event.pointerId, type, button: event.button };
     try { this.canvas.setPointerCapture(event.pointerId); } catch { /* Synthetic events cannot capture. */ }
     if (this.callbacks.onStart(event) === false) this.cancel();
   }
@@ -39,6 +44,11 @@ export class PointerInput {
 
   move(event) {
     if (!this.active || event.pointerId !== this.active.id) return;
+    if (this.active.type === 'mouse' && Number.isFinite(event.buttons)
+      && !(event.buttons & (this.active.button === 2 ? 2 : 1))) {
+      this.end(event);
+      return;
+    }
     event.preventDefault();
     this.callbacks.onMove(this.samples(event));
   }

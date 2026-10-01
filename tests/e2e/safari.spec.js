@@ -25,5 +25,17 @@ test('iPad Safari draws, restores history, and retains a canvas across rotation'
   await page.locator('#color-input').fill('#AA3344');
   await page.locator('#color-done').click();
   await expect(page.locator('#current-color-label')).toHaveText('#AA3344');
+  await page.locator('#btn-collapse').click();
+  await expect(page.locator('#dock')).toBeHidden();
+  const button = await page.locator('#dock-orb').boundingBox();
+  await page.mouse.move(button.x + 26, button.y + 26);
+  await page.mouse.down();
+  await page.mouse.move(1020, 405, { steps: 10 });
+  await page.mouse.up();
+  await page.locator('#dock-orb').tap();
+  await expect(page.locator('#dock')).toHaveAttribute('data-state', 'open');
+  await expect(page.locator('#dock')).toHaveAttribute('data-orientation', 'vertical');
+  await page.locator('#btn-eraser').tap();
+  await expect(page.locator('#btn-eraser')).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
 });

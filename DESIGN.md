@@ -6,7 +6,7 @@ Someone opens a canvas to sketch immediately on a laptop or touchscreen. White p
 
 ## Color strategy
 
-Use neutral toolbar surfaces with a blue accent for the selected tool and focus. Chrome uses OKLCH; drawing colors remain literal sRGB for predictable PNG output. SVG color samples preserve their actual fills under forced colors. The canvas, samples, and color-selection surface keep their drawing colors while other controls respect system contrast settings.
+Use translucent neutral glass with a fine highlight, backdrop blur, and a blue accent for the selected tool and focus. Reduced-transparency and forced-color settings use solid surfaces. Chrome uses OKLCH; drawing colors remain literal sRGB for predictable PNG output. SVG color samples preserve their actual fills under forced colors. The canvas, samples, and color-selection surface keep their drawing colors while other controls respect system contrast settings.
 
 ## Typography
 
@@ -14,7 +14,7 @@ Use the native sans-serif family for dialog content, tooltips, and the small bru
 
 ## Layout
 
-The canvas fills the viewport with no frame or reserved toolbar space. A pill-shaped toolbar floats at the bottom safe edge. Desktop uses one icon-only row. Smaller screens use a tool row followed by color/brush controls and actions. Scroll arrows keep every drawing tool reachable. Save PNG, Undo, Redo, Clear, Help, and Collapse share the bottom toolbar. Collapsing reveals a draggable round pen button.
+The canvas fills the viewport with no frame or reserved toolbar space. The glass toolbar starts at the bottom safe edge. Collapsing reveals a draggable round pen button; the toolbar shares its anchor and opens there. Near side edges it uses a narrow vertical layout; near the top or bottom it uses horizontal rows. Placement stays inside safe viewport bounds during resizing. Scroll arrows keep every drawing tool reachable; short vertical panels also scroll their controls. Save PNG, Undo, Redo, Clear, Help, and Collapse stay in the toolbar.
 
 ## Components
 
@@ -22,4 +22,4 @@ Outlined 24-pixel SVG icons use consistent rounded caps and joins. Every action 
 
 ## Motion
 
-State transitions last 120 milliseconds and use ease-out. No layout animation or introductory sequence. Reduced-motion settings disable transitions.
+Hover transitions last 120 milliseconds. Expanding and collapsing morph between button and panel bounds over 360 milliseconds with transform and opacity; tool content fades separately. Interrupted transitions cancel cleanly. Reduced-motion settings switch immediately.

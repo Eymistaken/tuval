@@ -157,10 +157,12 @@ export class DrawingEngine {
     if (!Number.isFinite(start.x) || !Number.isFinite(start.y)
       || start.x < 0 || start.y < 0 || start.x >= this.width || start.y >= this.height) return false;
     this.loadVersion += 1;
+    const temporaryEraser = (event.pointerType || 'mouse') === 'mouse' && event.button === 2;
     this.operation = {
-      options: { ...this.options }, start, current: start, points: [start],
+      options: { ...this.options, ...(temporaryEraser ? { tool: 'eraser' } : {}) }, start, current: start, points: [start],
       pointerType: event.pointerType || 'mouse', clientX: event.clientX, clientY: event.clientY,
     };
+    this.canvas.toggleAttribute('data-temporary-eraser', temporaryEraser);
     this.prepareLayer(this.operation.options);
     if (FREEHAND_TOOLS.has(this.operation.options.tool)) paintFreehand(this.layerContext, this.operation);
     if (this.operation.options.tool === 'airbrush') spray(this.layerContext, start, this.operation.options.size);
@@ -215,6 +217,7 @@ export class DrawingEngine {
     this.refreshPreview();
     const operation = this.operation;
     this.operation = null;
+    this.canvas.removeAttribute('data-temporary-eraser');
     if (operation.options.tool === 'text') {
       this.render();
       this.callbacks.onTextRequest({ x: operation.start.x, y: operation.start.y, clientX: operation.clientX, clientY: operation.clientY });
@@ -242,6 +245,7 @@ export class DrawingEngine {
   cancelOperation() {
     this.cancelPreviewFrame();
     this.operation = null;
+    this.canvas.removeAttribute('data-temporary-eraser');
     this.render();
   }
 

@@ -13,8 +13,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, testMatch: 'studio.spec.js' },
-    { name: 'touch', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } }, testMatch: 'studio.spec.js' },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, testMatch: ['studio.spec.js', 'dock.spec.js'] },
+    { name: 'touch', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } }, testMatch: ['studio.spec.js', 'dock.spec.js'] },
     { name: 'safari', use: { ...devices['iPad (gen 7)'] }, testMatch: 'safari.spec.js' },
   ],
   webServer: process.env.TUVAL_BASE_URL ? undefined : {

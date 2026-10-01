@@ -14,7 +14,7 @@ Provide an immediate, reliable drawing surface with all nine original tools, cle
 
 ## Brand Personality
 
-Immediate, minimal, practical. Drawing starts on a full-screen surface; controls stay in one small bottom toolbar.
+Immediate, minimal, practical. Drawing starts on a full-screen surface; a movable glass toolbar opens at its pen button and adapts to the nearest screen edge.
 
 ## Anti-references
 

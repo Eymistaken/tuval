@@ -21,19 +21,45 @@ function setup(options = {}) {
     const event = new Event(type, { cancelable: true });
     Object.assign(event, { pointerId: 1, pointerType: 'mouse', button: 0, clientX: 10, clientY: 10, ...values });
     canvas.dispatchEvent(event);
+    return event;
   };
   return { canvas, view, input, calls, send };
 }
 
-test('pointer input ignores secondary mouse buttons, extra pointers, and disabled touch', () => {
+test('pointer input ignores middle mouse buttons, extra pointers, and disabled touch', () => {
   const { send, calls, input } = setup({ touchDrawing: false });
-  send('pointerdown', { button: 2 });
+  send('pointerdown', { button: 1 });
   send('pointerdown', { pointerType: 'touch' });
   send('pointerdown', { pointerType: 'pen' });
   send('pointerdown', { pointerId: 2, pointerType: 'touch' });
   send('pointerup', { pointerId: 2 });
   send('pointerup');
   assert.deepEqual(calls.filter(([name]) => name !== 'move'), [['start', 1], ['end', 1]]);
+  input.destroy();
+});
+
+test('right dragging ends when its button is released even while another button remains down', () => {
+  const { send, calls, input } = setup();
+  send('pointerdown', { button: 2, buttons: 2 });
+  send('pointermove', { button: -1, buttons: 3, clientX: 20 });
+  send('pointermove', { button: 2, buttons: 1, clientX: 30 });
+  send('pointermove', { button: -1, buttons: 1, clientX: 40 });
+  send('pointerup');
+  assert.deepEqual(calls, [['start', 1], ['move', [20]], ['move', [30]], ['end', 1]]);
+  input.destroy();
+});
+
+test('mouse context menus are suppressed while touch and stylus menus are preserved', () => {
+  const { send, input } = setup();
+  assert.equal(send('contextmenu').defaultPrevented, true);
+  for (const pointerType of ['touch', 'pen']) {
+    send('pointerdown', { pointerType });
+    send('pointermove', { pointerType, buttons: 0 });
+    assert.equal(input.active.type, pointerType);
+    send('pointerup', { pointerType });
+    assert.equal(send('contextmenu', { pointerType }).defaultPrevented, false);
+    assert.equal(send('contextmenu', { pointerType: '' }).defaultPrevented, false);
+  }
   input.destroy();
 });
 
