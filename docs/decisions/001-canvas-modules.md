@@ -14,7 +14,7 @@ The original application combines markup, styling, drawing tools, pointer handli
 
 ## Decision
 
-Keep Canvas 2D and split the app into focused JavaScript modules, built with Vite. Store artwork in a separate retained document canvas and resize only the presentation canvas. Handle input with one captured pointer and quadratic midpoint curves. Use a preview layer to apply opacity once per committed stroke. Keep synchronous bounded history, and save PNG bytes asynchronously in IndexedDB with logical document dimensions.
+Keep Canvas 2D and split the app into focused JavaScript modules, built with Vite. Store artwork in a separate retained document canvas. The full-screen presentation canvas displays the visible region at logical scale; the retained document expands when the viewport needs more room and never shrinks. Handle input with one captured pointer and quadratic midpoint curves. Use a preview layer to apply opacity once per committed stroke. Keep synchronous bounded history, and save PNG bytes asynchronously in IndexedDB with logical document dimensions.
 
 Store the PNG as an ArrayBuffer because WebKit can reject Blob preparation in IndexedDB. Reconstruct a Blob when loading artwork and continue accepting earlier Blob records. Capture the image bytes before opening the write transaction, and serialize saves to preserve drawing order.
 
@@ -24,6 +24,6 @@ Extracting the existing inline script and styles would improve file organization
 
 ## Consequences
 
-There are no runtime dependencies, and drawing primitives can be tested independently. The complete document survives rotation and workspace changes. Translucent strokes are uniform, and canceled operations do not enter history. Memory bounds reduce the number of undo entries on large documents. A very long freehand stroke still requires preview redraws, batched once per animation frame.
+There are no runtime dependencies, and drawing primitives can be tested independently. The complete document survives rotation and viewport changes without stretching. PNG export includes regions outside the current viewport; history snapshots retain logical dimensions for restoration after expansion. Translucent strokes are uniform, and canceled operations do not enter history. Memory bounds reduce the number of undo entries on large documents. A very long freehand stroke still requires preview redraws, batched once per animation frame.
 
 Legacy localStorage migration requires the same browser origin. The new public address cannot read drawings saved by a standalone local HTML file. PNG export provides a portable copy of new drawings.

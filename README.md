@@ -1,6 +1,6 @@
 # Tuval
 
-A quiet space for your ideas. Tuval is a browser drawing studio that works with a mouse, finger, or stylus. It keeps the original canvas's nine tools, with smooth freehand strokes, an accessible toolbar, and local autosave.
+Tuval is a full-screen drawing canvas that works with a mouse, finger, or stylus. It keeps the original canvas's nine tools, with smooth freehand strokes, an accessible toolbar, and local autosave.
 
 **[Open the studio →](https://tuvall.netlify.app)**
 
@@ -13,7 +13,8 @@ A quiet space for your ideas. Tuval is a browser drawing studio that works with 
 - Choose preset colors or use the custom HSV, HEX, and RGB picker with opacity.
 - Adjust brush size from 1 to 50, enable stylus pressure, or disable finger drawing.
 - Undo and redo; clear a drawing with confirmation and recover it with Undo.
-- Collapse the toolbar and drag its Tools button. Narrow screens have a swipeable tool row and navigation arrows.
+- Save, undo, redo, and clear from the floating bottom toolbar. There is no header or document-name display.
+- Collapse the toolbar and drag its pen button. Narrow screens have a swipeable tool row and navigation arrows.
 - Save a PNG of the full drawing, even after resizing or rotating the screen.
 
 ## Run locally
@@ -82,9 +83,9 @@ legacy/         Original single-file application, retained as a reference
 tests/          Unit and browser regression tests
 ```
 
-The retained document canvas is independent of the displayed canvas. Resizing fits the complete document into the workspace rather than cropping saved artwork. An opaque preview layer applies opacity once per stroke. Pointer capture and coalesced samples support smooth input; extra pointers are ignored and canceled strokes are discarded.
+The retained document canvas is independent of the displayed canvas. It grows when the viewport needs more room and never shrinks. Artwork keeps its logical size during rotation; regions outside the current viewport remain in the saved document and PNG export. Undo snapshots preserve their original coordinates after expansion. An opaque preview layer applies opacity once per stroke. Pointer capture and coalesced samples support smooth input; extra pointers are ignored and canceled strokes are discarded.
 
-[Architecture decision](docs/decisions/001-canvas-modules.md) · [Approved design](docs/superpowers/specs/2026-10-01-tuval-design.md) · [Contributing](CONTRIBUTING.md)
+[Architecture decision](docs/decisions/001-canvas-modules.md) · [Current design](docs/superpowers/specs/2026-10-01-minimal-canvas-design.md) · [Contributing](CONTRIBUTING.md)
 
 ## Deployment
 

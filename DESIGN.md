@@ -2,32 +2,24 @@
 
 ## Physical scene
 
-Someone sketching at a desk or holding a tablet near a window in daylight, moving between ideas and notes. Light paper and calm, warm studio chrome keep drawings readable without competing with them.
+Someone opens a canvas to sketch immediately on a laptop or touchscreen. White paper fills the screen; a small floating toolbar provides the controls without competing with the drawing.
 
 ## Color strategy
 
-Restrained warm neutrals with a forest-green accent for selection and primary actions. CSS uses OKLCH for chrome; literal drawing colors remain sRGB for predictable PNG output.
-
-- Paper: white drawing background.
-- Studio: warm off-white, oklch(0.96 0.006 85).
-- Ink: oklch(0.24 0.018 155).
-- Muted text: oklch(0.48 0.012 155).
-- Accent: oklch(0.4 0.07 160).
-- Selected surface: oklch(0.92 0.025 155).
-- Destructive actions: dark brick red.
+Use neutral toolbar surfaces with a blue accent for the selected tool and focus. Chrome uses OKLCH; drawing colors remain literal sRGB for predictable PNG output. SVG color samples preserve their actual fills under forced colors. The canvas, samples, and color-selection surface keep their drawing colors while other controls respect system contrast settings.
 
 ## Typography
 
-A native sans-serif family for compact tool labels, controls, and document metadata. The lowercase Tuval wordmark has tight letter spacing and a strong weight. Use fixed rem sizes with clear weight contrast.
+Use the native sans-serif family for dialog content, tooltips, and the small brush-size value. The main drawing surface has no wordmark, document name, headings, labels, or empty-state prose.
 
 ## Layout
 
-A compact studio header, large bounded drawing workspace, and a bottom dock. Tool names are visible. Drawing tools, color controls, and brush settings form three clear groups. On narrow screens, the tool row scrolls with explicit previous/next controls and starts at the first tool. Settings wrap into a second row, never beyond the viewport. Safe-area insets apply to fixed controls. The dock collapses to a draggable button that stays inside the viewport.
+The canvas fills the viewport with no frame or reserved toolbar space. A pill-shaped toolbar floats at the bottom safe edge. Desktop uses one icon-only row. Smaller screens use a tool row followed by color/brush controls and actions. Scroll arrows keep every drawing tool reachable. Save PNG, Undo, Redo, Clear, Help, and Collapse share the bottom toolbar. Collapsing reveals a draggable round pen button.
 
 ## Components
 
-Outlined 24-pixel SVG icons use consistent rounded caps and joins. Tool targets are at least 44 pixels in each direction. Selected tools use a tinted background and forest-green stroke. Focus has a distinct outline. Inputs use native keyboard behavior and 16-pixel text on mobile. Color swatches have accessible names and a selection ring. Dialogs use native focus containment and explicit close controls.
+Outlined 24-pixel SVG icons use consistent rounded caps and joins. Every action has an accessible name and tooltip; touch targets are at least 44 pixels. Tool selection uses a blue circle and a visible outline under forced colors. Color samples have accessible names and selection rings. Brush settings, custom colors, clear confirmation, and shortcuts use native dialogs with explicit close controls. Autosave status is announced without permanent visual text; storage errors remain visible.
 
 ## Motion
 
-State transitions last 160 milliseconds and use ease-out. No layout animations. Reduced-motion settings disable transitions.
+State transitions last 120 milliseconds and use ease-out. No layout animation or introductory sequence. Reduced-motion settings disable transitions.

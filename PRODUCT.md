@@ -14,18 +14,18 @@ Provide an immediate, reliable drawing surface with all nine original tools, cle
 
 ## Brand Personality
 
-Quiet, tactile, capable. A drawing studio that leaves room for the user's work.
+Immediate, minimal, practical. Drawing starts on a full-screen surface; controls stay in one small bottom toolbar.
 
 ## Anti-references
 
-Avoid the original crowded, centered overflowing glass toolbar, arbitrary filled icons, controls that depend on hover or long presses, and decorative panels that shrink the drawing area.
+Keep the original floating-toolbar workflow. Avoid overflowing controls, decorative headers, document-name displays, empty-state prose, arbitrary filled icons, and panels that reserve drawing space.
 
 ## Design Principles
 
-1. The canvas is the main event.
+1. The canvas fills the screen; controls overlay it.
 2. Every control is reachable with a finger, pointer, or keyboard.
 3. Preserve existing features and saved artwork during the migration.
-4. Trust comes from predictable drawing, history, and visible save feedback.
+4. Drawing and history stay predictable; storage errors are visible and ordinary save feedback is available to assistive technology.
 5. Artwork stays on the device, with PNG export for portability.
 
 ## Accessibility & Inclusion

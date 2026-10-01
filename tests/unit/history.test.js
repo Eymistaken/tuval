@@ -51,3 +51,13 @@ test('history enforces both entry and byte limits, including after branching and
   assert.equal(countLimited.length, 2);
   assert.throws(() => new SnapshotHistory(snapshot(0), { maxBytes: 3 }), RangeError);
 });
+
+test('history preserves logical coordinates when snapshot resolution or document size changes', () => {
+  const initial = { ...snapshot(0), logicalWidth: 0.5, logicalHeight: 0.5 };
+  const history = new SnapshotHistory(initial);
+  history.push({ ...snapshot(1), logicalWidth: 1, logicalHeight: 1 });
+  const previous = history.undo();
+  assert.equal(previous.logicalWidth, 0.5);
+  assert.equal(previous.logicalHeight, 0.5);
+  assert.equal(history.redo().logicalWidth, 1);
+});

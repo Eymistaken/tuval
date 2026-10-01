@@ -36,8 +36,36 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('#loading-state')).toBeHidden();
 });
 
+test('full-screen canvas keeps every action in a compact bottom toolbar', async ({ page }) => {
+  const viewport = page.viewportSize();
+  const box = await page.locator('#canvas').boundingBox();
+  expect(box.x).toBe(0);
+  expect(box.y).toBe(0);
+  expect(box.width).toBe(viewport.width);
+  expect(box.height).toBe(viewport.height);
+  await expect(page.locator('.studio-header, .document-meta, .canvas-hint, .workspace-heading')).toHaveCount(0);
+  for (const id of ['btn-undo', 'btn-redo', 'btn-clear', 'btn-export', 'btn-help', 'btn-collapse']) {
+    await expect(page.locator(`#dock #${id}`)).toBeVisible();
+  }
+  const dock = await page.locator('#dock').boundingBox();
+  expect(dock.y).toBeGreaterThan(viewport.height / 2);
+});
+
+test('literal palette colors remain visible when system colors are forced', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  const colors = await page.locator('.color-swatch').evaluateAll((buttons) => buttons.map((button) => {
+    const sample = button.querySelector('circle') || button.querySelector('.swatch-fill');
+    const style = getComputedStyle(sample);
+    return { actual: sample.tagName === 'circle' ? style.fill : style.backgroundColor, color: button.dataset.color };
+  }));
+  for (const { actual, color } of colors) {
+    const channels = [1, 3, 5].map((offset) => parseInt(color.slice(offset, offset + 2), 16));
+    expect(actual).toBe(`rgb(${channels.join(', ')})`);
+  }
+});
+
 test('every original tool is selectable at narrow and wide viewport sizes', async ({ page }) => {
-  for (const width of [320, 390, 768, 1440]) {
+  for (const width of [320, 390, 620, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     for (const id of tools) {
       await tool(page, id);
@@ -47,7 +75,7 @@ test('every original tool is selectable at narrow and wide viewport sizes', asyn
       expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
-    for (const selector of ['#btn-color', '#btn-settings', '#size-slider', '#btn-collapse']) {
+    for (const selector of ['#btn-color', '#btn-settings', '#size-slider', '#btn-collapse', '#btn-undo', '#btn-redo', '#btn-clear', '#btn-export', '#btn-help']) {
       const box = await page.locator(selector).boundingBox();
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
@@ -241,7 +269,8 @@ test('existing IndexedDB Blob records restore after the PNG byte migration', asy
   await page.reload();
   await expect(page.locator('#loading-state')).toBeHidden();
   expect(await pixels(page)).toBeGreaterThan(1000);
-  await expect(page.locator('#canvas-dimensions')).toHaveText('100 × 60');
+  const viewport = page.viewportSize();
+  await expect(page.locator('#canvas-dimensions')).toHaveText(`${viewport.width} × ${viewport.height}`);
 });
 
 test('touch drawing finalizes without errors and ignores an extra finger', async ({ page, context }) => {
@@ -293,12 +322,12 @@ test('stylus pressure works and canceled pointers leave no drawing or stuck inpu
 
 test('rotation and dock collapse preserve the full exported document', async ({ page }) => {
   await draw(page, [[0.1, 0.1], [0.9, 0.9]]);
-  const dimensions = await page.locator('#canvas-dimensions').textContent();
+  const dimensions = (await page.locator('#canvas-dimensions').textContent()).split(' × ').map(Number);
   await page.locator('#btn-collapse').click();
   await expect(page.locator('#dock-orb')).toBeVisible();
   await expect(page.locator('#dock')).toBeHidden();
   await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator('#canvas-dimensions')).toHaveText(dimensions);
+  await expect(page.locator('#canvas-dimensions')).toHaveText(`${Math.max(dimensions[0], 844)} × ${Math.max(dimensions[1], 390)}`);
   expect(await pixels(page)).toBeGreaterThan(0);
   await page.locator('#dock-orb').click();
   await expect(page.locator('#dock')).toBeVisible();
@@ -307,6 +336,80 @@ test('rotation and dock collapse preserve the full exported document', async ({ 
   await page.locator('#btn-undo').click();
   expect(await pixels(page)).toBe(0);
   await page.locator('#btn-redo').click();
+  expect(await pixels(page)).toBeGreaterThan(0);
+});
+
+test('viewport expansion keeps history and makes the newly exposed edges drawable', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.addInitScript(() => Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true }));
+  await page.reload();
+  await expect(page.locator('#loading-state')).toBeHidden();
+  await page.locator('#canvas').click({ position: { x: 20, y: 30 } });
+  await page.evaluate(() => Object.defineProperty(window, 'devicePixelRatio', { value: 1, configurable: true }));
+  await page.setViewportSize({ width: 900, height: 700 });
+  await expect(page.locator('#canvas-dimensions')).toHaveText('900 × 700');
+  const box = await page.locator('#canvas').boundingBox();
+  expect(box).toMatchObject({ x: 0, y: 0, width: 900, height: 700 });
+  await page.locator('#canvas').click({ position: { x: 870, y: 30 } });
+  const sample = () => page.locator('#canvas').evaluate((canvas) => {
+    const context = canvas.getContext('2d');
+    const ratio = canvas.width / 900;
+    return [20, 870].map((x) => context.getImageData(Math.floor(x * ratio), Math.floor(30 * ratio), 1, 1).data[0]);
+  });
+  expect(await sample()).toEqual([32, 32]);
+  await page.locator('#btn-undo').click();
+  expect(await sample()).toEqual([32, 255]);
+  await page.locator('#btn-undo').click();
+  expect(await pixels(page)).toBe(0);
+  await page.locator('#btn-redo').click();
+  expect(await sample()).toEqual([32, 255]);
+  await page.locator('#btn-redo').click();
+  expect(await sample()).toEqual([32, 32]);
+  await page.setViewportSize({ width: 320, height: 480 });
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#btn-export').click();
+  const stream = await (await downloadPromise).createReadStream();
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  const png = Buffer.concat(chunks);
+  const ratio = await page.locator('#canvas').evaluate((canvas) => canvas.width / 320);
+  expect(png.readUInt32BE(16)).toBe(900 * ratio);
+  expect(png.readUInt32BE(20)).toBe(700 * ratio);
+});
+
+test('a resize during PNG encoding keeps saved dimensions paired with the captured image', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.reload();
+  await expect(page.locator('#loading-state')).toBeHidden();
+  const ratio = await page.locator('#canvas').evaluate((canvas) => canvas.width / 320);
+  await page.evaluate(() => {
+    window.pendingEncodings = [];
+    window.originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback, ...args) {
+      window.originalToBlob.call(this, (blob) => window.pendingEncodings.push(() => callback(blob)), ...args);
+    };
+  });
+  await page.locator('#canvas').click({ position: { x: 20, y: 30 } });
+  await page.waitForFunction(() => window.pendingEncodings.length === 1);
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.evaluate(() => window.pendingEncodings.shift()());
+  await page.waitForFunction(() => window.pendingEncodings.length === 1);
+  const record = await page.evaluate(async () => {
+    const db = await new Promise((resolve) => { const request = indexedDB.open('tuval-studio', 1); request.onsuccess = () => resolve(request.result); });
+    const drawing = await new Promise((resolve) => { const request = db.transaction('drawings').objectStore('drawings').get('current'); request.onsuccess = () => resolve(request.result); });
+    db.close();
+    const bytes = new DataView(drawing.png);
+    return { width: drawing.width, height: drawing.height, pngWidth: bytes.getUint32(16), pngHeight: bytes.getUint32(20) };
+  });
+  expect(record).toEqual({ width: 320, height: 480, pngWidth: 320 * ratio, pngHeight: 480 * ratio });
+  await page.evaluate(() => {
+    HTMLCanvasElement.prototype.toBlob = window.originalToBlob;
+    window.pendingEncodings.shift()();
+  });
+  await expect(page.locator('#save-status-text')).toHaveText('Saved on this device');
+  await page.reload();
+  await expect(page.locator('#loading-state')).toBeHidden();
+  await expect(page.locator('#canvas-dimensions')).toHaveText('900 × 700');
   expect(await pixels(page)).toBeGreaterThan(0);
 });
 

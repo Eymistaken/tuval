@@ -3,54 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f3f2ee" />
-    <meta name="description" content="A quiet space for your ideas. Draw with a mouse, finger, or stylus, with smooth strokes and private autosave." />
-    <title>Tuval · Your space to create</title>
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="A full-screen drawing canvas with smooth strokes, touch input, and local autosave." />
+    <title>Tuval</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/styles/studio.css" />
   </head>
   <body>
     <div class="studio">
-      <header class="studio-header">
-        <a class="brand" href="/" aria-label="Tuval home"><span class="brand-symbol" aria-hidden="true" data-icon="brand"></span><span>tuval<span class="brand-period">.</span></span></a>
-        <div class="document-meta"><span class="document-name">Untitled canvas</span><span class="document-note">A little space for big ideas.</span></div>
-        <div class="header-actions">
-          <div class="history-actions" aria-label="Drawing history"><button class="icon-button" id="btn-undo" aria-label="Undo" title="Undo (Ctrl+Z)" disabled data-icon="undo"></button><button class="icon-button" id="btn-redo" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled data-icon="redo"></button></div>
-          <span class="action-divider" aria-hidden="true"></span>
-          <button class="icon-button clear-button" id="btn-clear" aria-label="Clear canvas" title="Clear canvas" data-icon="trash"></button>
-          <button class="export-button" id="btn-export" aria-label="Save PNG"><span data-icon="download" aria-hidden="true"></span><span class="export-label">Save PNG</span></button>
-        </div>
-      </header>
       <main class="workspace" aria-label="Drawing workspace">
-        <div class="workspace-heading"><span class="workspace-label">MAKE ROOM FOR AN IDEA</span><span id="canvas-dimensions" class="canvas-dimensions"></span></div>
         <div id="canvas-viewport" class="canvas-viewport">
           <canvas id="canvas" tabindex="0" aria-label="Drawing canvas. Select a tool and draw with your mouse, finger, or stylus."></canvas>
-          <div class="canvas-hint" id="canvas-hint" aria-hidden="true"><span data-icon="spark"></span><p>Start with a single line.</p><span>The rest will follow.</span></div>
-          <div class="loading-state" id="loading-state" role="status">Opening your canvas…</div>
+          <div class="loading-state" id="loading-state" role="status">Loading…</div>
         </div>
-        <div class="workspace-footer"><span class="save-status" id="save-status" role="status"><span class="status-dot" aria-hidden="true"></span><span id="save-status-text">Everything stays on your device</span></span><button class="quiet-button" id="btn-help" aria-label="Shortcuts and help"><span data-icon="keyboard" aria-hidden="true"></span><span>Shortcuts & help</span></button></div>
       </main>
       <section id="dock" class="dock" aria-label="Drawing tools and brush settings">
         <div class="dock-content">
-          <div class="tools-group">
-            <div class="group-heading"><span>YOUR TOOLS</span></div>
-            <div class="tool-navigation">
-              <button id="tools-previous" class="scroll-button" aria-label="Previous tools" data-icon="chevron-left"></button>
-              <div id="tool-list" class="tool-list" role="toolbar" aria-label="Drawing tools"></div>
-              <button id="tools-next" class="scroll-button" aria-label="More tools" data-icon="chevron-right"></button>
-              <button class="small-icon-button" id="btn-collapse" aria-label="Hide toolbar" title="Hide toolbar" data-icon="chevron-down"></button>
-            </div>
+          <div class="tools-group"><div class="tool-navigation">
+            <button id="tools-previous" class="scroll-button" aria-label="Previous tools" data-icon="chevron-left"></button>
+            <div id="tool-list" class="tool-list" role="toolbar" aria-label="Drawing tools"></div>
+            <button id="tools-next" class="scroll-button" aria-label="More tools" data-icon="chevron-right"></button>
+          </div></div>
+          <div class="color-group"><div class="color-controls" id="color-controls">
+            <div id="color-presets" class="color-presets" role="group" aria-label="Preset colors"></div>
+            <button class="custom-color-button" id="btn-color" aria-label="Custom color" title="Custom color"><span data-icon="palette" aria-hidden="true"></span></button>
+            <span id="current-color-label" class="sr-only">#202923</span>
+          </div></div>
+          <div class="brush-group"><div class="brush-controls">
+            <input id="size-slider" type="range" min="1" max="50" value="5" aria-label="Brush size" />
+            <output for="size-slider" id="size-value">5 px</output>
+            <button class="icon-button" id="btn-settings" aria-label="Brush and input settings" title="Brush and input settings" data-icon="settings"></button>
+          </div></div>
+          <div class="dock-actions" role="group" aria-label="Canvas actions">
+            <button class="icon-button" id="btn-undo" aria-label="Undo" title="Undo (Ctrl+Z)" disabled data-icon="undo"></button>
+            <button class="icon-button" id="btn-redo" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled data-icon="redo"></button>
+            <button class="icon-button clear-button" id="btn-clear" aria-label="Clear canvas" title="Clear canvas" data-icon="trash"></button>
+            <button class="icon-button" id="btn-export" aria-label="Save PNG" title="Save PNG (Ctrl+S)" data-icon="download"></button>
+            <button class="icon-button" id="btn-help" aria-label="Shortcuts and help" title="Shortcuts and help" data-icon="keyboard"></button>
+            <button class="icon-button" id="btn-collapse" aria-label="Hide toolbar" title="Hide toolbar" data-icon="chevron-down"></button>
           </div>
-          <div class="dock-divider" aria-hidden="true"></div>
-          <div class="color-group"><div class="group-heading"><span>COLOR</span><span id="current-color-label" class="color-value">#202923</span></div><div class="color-controls" id="color-controls"><div id="color-presets" class="color-presets" role="group" aria-label="Preset colors"></div><button class="custom-color-button" id="btn-color" aria-label="Custom color" title="Custom color"><span data-icon="palette" aria-hidden="true"></span></button></div></div>
-          <div class="dock-divider settings-divider" aria-hidden="true"></div>
-          <div class="brush-group"><div class="group-heading"><label for="size-slider">BRUSH SIZE</label><output for="size-slider" id="size-value">5 px</output></div><div class="brush-controls"><span id="brush-preview" class="brush-preview" aria-hidden="true"><span></span></span><input id="size-slider" type="range" min="1" max="50" value="5" aria-label="Brush size" /><button class="icon-button" id="btn-settings" aria-label="Brush and input settings" title="Brush and input settings" data-icon="settings"></button></div></div>
         </div>
       </section>
-      <button id="dock-orb" class="dock-orb" aria-label="Show toolbar. Drag to move." title="Show toolbar" hidden><span data-icon="pen" aria-hidden="true"></span><span class="orb-label">Tools</span></button>
+      <button id="dock-orb" class="dock-orb" aria-label="Show toolbar. Drag to move." title="Show toolbar" hidden><span data-icon="pen" aria-hidden="true"></span></button>
+      <span id="canvas-dimensions" class="sr-only"></span>
+      <span class="save-status" id="save-status" role="status"><span id="save-status-text">Saved on this device</span></span>
     </div>
     <dialog id="color-dialog" class="studio-dialog color-dialog" aria-labelledby="color-title">
-      <div class="dialog-heading"><div><span class="eyebrow">A SHADE OF YOUR OWN</span><h2 id="color-title">Choose a color</h2></div><button class="icon-button" data-close="color-dialog" aria-label="Close color picker" data-icon="close"></button></div>
+      <div class="dialog-heading"><div><h2 id="color-title">Color</h2></div><button class="icon-button" data-close="color-dialog" aria-label="Close color picker" data-icon="close"></button></div>
       <div id="color-sv" class="color-sv" role="slider" tabindex="0" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span class="sv-indicator" id="sv-indicator"></span></div>
       <div class="color-slider-row"><label for="color-hue">Hue</label><input id="color-hue" type="range" min="0" max="360" value="150" /><output id="hue-value" for="color-hue">150°</output></div>
       <div class="color-slider-row"><label for="color-alpha">Opacity</label><input id="color-alpha" type="range" min="0" max="100" value="100" /><output id="alpha-value" for="color-alpha">100%</output></div>
@@ -58,20 +57,20 @@
       <p id="color-error" class="field-error" role="status"></p><button class="primary-button wide-button" id="color-done">Use this color</button>
     </dialog>
     <dialog id="settings-dialog" class="studio-dialog" aria-labelledby="settings-title">
-      <div class="dialog-heading"><div><span class="eyebrow">MAKE IT FEEL RIGHT</span><h2 id="settings-title">Brush & input</h2></div><button class="icon-button" data-close="settings-dialog" aria-label="Close settings" data-icon="close"></button></div>
+      <div class="dialog-heading"><div><h2 id="settings-title">Settings</h2></div><button class="icon-button" data-close="settings-dialog" aria-label="Close settings" data-icon="close"></button></div>
       <div class="setting-row"><div><label for="pressure-toggle">Pen pressure</label><p>Let your stylus shape the pen stroke.</p></div><input class="switch" id="pressure-toggle" type="checkbox" role="switch" checked /></div>
       <div class="setting-row"><div><label for="touch-toggle">Draw with a finger</label><p>Turn off to draw only with a stylus or mouse.</p></div><input class="switch" id="touch-toggle" type="checkbox" role="switch" checked /></div>
       <div class="setting-slider"><div><label for="opacity-slider">Brush opacity</label><output id="opacity-value" for="opacity-slider">100%</output></div><input id="opacity-slider" type="range" min="0" max="100" value="100" /></div>
       <p class="settings-note">Your settings are remembered on this device. Two-finger touches never add extra strokes.</p>
     </dialog>
     <dialog id="clear-dialog" class="studio-dialog" aria-labelledby="clear-title" aria-describedby="clear-description">
-      <div class="dialog-heading"><div><span class="eyebrow">A FRESH START</span><h2 id="clear-title">Clear this canvas?</h2></div><button class="icon-button" data-close="clear-dialog" aria-label="Close clear confirmation" data-icon="close"></button></div>
+      <div class="dialog-heading"><div><h2 id="clear-title">Clear this canvas?</h2></div><button class="icon-button" data-close="clear-dialog" aria-label="Close clear confirmation" data-icon="close"></button></div>
       <p id="clear-description" class="dialog-description">Your drawing will be cleared. You can bring it back with Undo.</p>
       <div class="dialog-actions"><button class="secondary-button" data-close="clear-dialog" autofocus>Keep drawing</button><button class="danger-button" id="clear-confirm">Clear canvas</button></div>
     </dialog>
     <dialog id="help-dialog" class="studio-dialog help-dialog" aria-labelledby="help-title">
-      <div class="dialog-heading"><div><span class="eyebrow">LESS CLICKING, MORE CREATING</span><h2 id="help-title">Find your flow</h2></div><button class="icon-button" data-close="help-dialog" aria-label="Close help" data-icon="close"></button></div>
-      <dl class="shortcut-list"><div><dt>Pen / Marker / Spray</dt><dd><kbd>P</kbd><kbd>M</kbd><kbd>A</kbd></dd></div><div><dt>Rectangle / Circle / Line</dt><dd><kbd>R</kbd><kbd>O</kbd><kbd>L</kbd></dd></div><div><dt>Text / Fill / Eraser</dt><dd><kbd>T</kbd><kbd>F</kbd><kbd>E</kbd></dd></div><div><dt>Undo</dt><dd><kbd>Ctrl</kbd> + <kbd>Z</kbd></dd></div><div><dt>Redo</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></dd></div><div><dt>Save PNG</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd></div><div><dt>Smaller / Larger brush</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div></dl><p class="settings-note">On a Mac, use ⌘ instead of Ctrl. Tap Text, then the canvas to type. Drag the Tools button when the toolbar is hidden.</p><div class="privacy-note"><span data-icon="shield" aria-hidden="true"></span><p>Your canvas is saved in this browser. Tuval never uploads your artwork. Export a PNG to keep a copy.</p></div><a class="source-link" href="https://github.com/Eymistaken/tuval" target="_blank" rel="noopener noreferrer">Made for making. Source on GitHub.<span data-icon="external" aria-hidden="true"></span></a>
+      <div class="dialog-heading"><div><h2 id="help-title">Shortcuts</h2></div><button class="icon-button" data-close="help-dialog" aria-label="Close help" data-icon="close"></button></div>
+      <dl class="shortcut-list"><div><dt>Pen / Marker / Spray</dt><dd><kbd>P</kbd><kbd>M</kbd><kbd>A</kbd></dd></div><div><dt>Rectangle / Circle / Line</dt><dd><kbd>R</kbd><kbd>O</kbd><kbd>L</kbd></dd></div><div><dt>Text / Fill / Eraser</dt><dd><kbd>T</kbd><kbd>F</kbd><kbd>E</kbd></dd></div><div><dt>Undo</dt><dd><kbd>Ctrl</kbd> + <kbd>Z</kbd></dd></div><div><dt>Redo</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></dd></div><div><dt>Save PNG</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd></div><div><dt>Smaller / Larger brush</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div></dl><p class="settings-note">On a Mac, use ⌘ instead of Ctrl. Tap Text, then the canvas to type. Drag the pen button when the toolbar is hidden.</p><div class="privacy-note"><span data-icon="shield" aria-hidden="true"></span><p>Your canvas is saved in this browser. Tuval never uploads your artwork. Export a PNG to keep a copy.</p></div><a class="source-link" href="https://github.com/Eymistaken/tuval" target="_blank" rel="noopener noreferrer">Source on GitHub.<span data-icon="external" aria-hidden="true"></span></a>
     </dialog>
     <form id="text-editor" class="text-editor" hidden><input id="text-input" type="text" maxlength="500" placeholder="Your words…" aria-label="Text to add to canvas" autocomplete="off" /><div><button class="primary-button" type="submit">Add text</button><button class="icon-button" type="button" id="text-cancel" aria-label="Cancel text" data-icon="close"></button></div></form>
     <div id="toast" class="toast" role="status" hidden></div>

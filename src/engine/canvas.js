@@ -83,9 +83,22 @@ export class DrawingEngine {
   fit() {
     if (this.destroyed) return;
     const bounds = this.parent.getBoundingClientRect();
-    const fit = Math.min(Math.max(1, bounds.width) / this.width, Math.max(1, bounds.height) / this.height);
-    const width = this.width * fit;
-    const height = this.height * fit;
+    const width = Math.max(1, Math.round(bounds.width));
+    const height = Math.max(1, Math.round(bounds.height));
+    const expanded = width > this.width || height > this.height;
+    if (expanded) {
+      this.input.cancel();
+      const previous = this.canvas.ownerDocument.createElement('canvas');
+      previous.width = this.documentCanvas.width;
+      previous.height = this.documentCanvas.height;
+      previous.getContext('2d').drawImage(this.documentCanvas, 0, 0);
+      const oldWidth = this.width;
+      const oldHeight = this.height;
+      this.createDocument(Math.max(width, oldWidth), Math.max(height, oldHeight));
+      this.context.drawImage(previous, 0, 0, oldWidth * this.scaleX, oldHeight * this.scaleY);
+    }
+    this.viewportWidth = width;
+    this.viewportHeight = height;
     const ratio = backingRatio(width, height, clamp(this.view.devicePixelRatio || 1, 1, 2));
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
@@ -94,6 +107,7 @@ export class DrawingEngine {
     if (this.canvas.width !== pixelWidth) this.canvas.width = pixelWidth;
     if (this.canvas.height !== pixelHeight) this.canvas.height = pixelHeight;
     this.render();
+    if (expanded) this.callbacks.onChange();
   }
 
   render() {
@@ -104,12 +118,14 @@ export class DrawingEngine {
     context.globalAlpha = 1;
     context.globalCompositeOperation = 'source-over';
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    context.drawImage(this.documentCanvas, 0, 0, this.canvas.width, this.canvas.height);
+    const width = this.width * this.canvas.width / this.viewportWidth;
+    const height = this.height * this.canvas.height / this.viewportHeight;
+    context.drawImage(this.documentCanvas, 0, 0, width, height);
     if (this.operation) {
       const { alpha, composite } = layerStyle(this.operation.options);
       context.globalAlpha = alpha;
       context.globalCompositeOperation = composite;
-      context.drawImage(this.layerCanvas, 0, 0, this.canvas.width, this.canvas.height);
+      context.drawImage(this.layerCanvas, 0, 0, width, height);
     }
     context.restore();
   }
@@ -117,8 +133,8 @@ export class DrawingEngine {
   toPoint(event, pressure = 1) {
     const bounds = this.canvas.getBoundingClientRect();
     return {
-      x: (event.clientX - bounds.left) / bounds.width * this.width,
-      y: (event.clientY - bounds.top) / bounds.height * this.height,
+      x: (event.clientX - bounds.left) / bounds.width * this.viewportWidth,
+      y: (event.clientY - bounds.top) / bounds.height * this.viewportHeight,
       pressure,
     };
   }
@@ -235,7 +251,10 @@ export class DrawingEngine {
   }
 
   snapshot() {
-    return this.context.getImageData(0, 0, this.documentCanvas.width, this.documentCanvas.height);
+    const snapshot = this.context.getImageData(0, 0, this.documentCanvas.width, this.documentCanvas.height);
+    snapshot.logicalWidth = this.width;
+    snapshot.logicalHeight = this.height;
+    return snapshot;
   }
 
   notifyHistory() {
@@ -261,7 +280,17 @@ export class DrawingEngine {
     this.loadVersion += 1;
     const snapshot = this.history[direction]();
     if (!snapshot) return false;
-    this.context.putImageData(snapshot, 0, 0);
+    this.context.fillStyle = '#ffffff';
+    this.context.fillRect(0, 0, this.documentCanvas.width, this.documentCanvas.height);
+    if (snapshot.width / snapshot.logicalWidth === this.scaleX && snapshot.height / snapshot.logicalHeight === this.scaleY) {
+      this.context.putImageData(snapshot, 0, 0);
+    } else {
+      const previous = this.canvas.ownerDocument.createElement('canvas');
+      previous.width = snapshot.width;
+      previous.height = snapshot.height;
+      previous.getContext('2d').putImageData(snapshot, 0, 0);
+      this.context.drawImage(previous, 0, 0, snapshot.logicalWidth * this.scaleX, snapshot.logicalHeight * this.scaleY);
+    }
     this.render();
     this.notifyHistory();
     this.callbacks.onChange();

@@ -1,8 +1,11 @@
 function copy(snapshot) {
   const data = new Uint8ClampedArray(snapshot.data);
-  return typeof ImageData === 'function'
+  const result = typeof ImageData === 'function'
     ? new ImageData(data, snapshot.width, snapshot.height)
     : { width: snapshot.width, height: snapshot.height, data };
+  result.logicalWidth = snapshot.logicalWidth ?? snapshot.width;
+  result.logicalHeight = snapshot.logicalHeight ?? snapshot.height;
+  return result;
 }
 
 function equal(a, b) {

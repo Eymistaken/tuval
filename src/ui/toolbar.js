@@ -22,9 +22,9 @@ export const PRESETS = [
 
 export function createToolbar({ onTool, onColor, onSize }) {
   const list = document.querySelector('#tool-list');
-  list.innerHTML = TOOLS.map(({ id, name, key }) => `<button class="tool-button" id="btn-${id}" data-tool="${id}" aria-label="${name}" aria-pressed="${id === 'pen'}" title="${name} (${key})">${icon(id)}<span class="tool-name">${name}</span></button>`).join('');
+  list.innerHTML = TOOLS.map(({ id, name, key }) => `<button class="tool-button" id="btn-${id}" data-tool="${id}" aria-label="${name}" aria-pressed="${id === 'pen'}" title="${name} (${key})">${icon(id)}</button>`).join('');
   const presets = document.querySelector('#color-presets');
-  presets.innerHTML = PRESETS.map(({ color, name }) => `<button class="color-swatch" data-color="${color}" aria-label="${name} color" aria-pressed="${color === '#202923'}" title="${name}" style="--swatch:${color}"><span class="swatch-fill"></span></button>`).join('');
+  presets.innerHTML = PRESETS.map(({ color, name }) => `<button class="color-swatch" data-color="${color}" aria-label="${name} color" aria-pressed="${color === '#202923'}" title="${name}"><svg class="swatch-fill" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="${color}" /></svg></button>`).join('');
 
   list.addEventListener('click', (event) => {
     const button = event.target.closest('[data-tool]');
@@ -55,7 +55,7 @@ export function createToolbar({ onTool, onColor, onSize }) {
   previous.addEventListener('click', () => scroll(-1));
   next.addEventListener('click', () => scroll(1));
   const updateScroll = () => {
-    const availableWidth = list.parentElement.clientWidth - document.querySelector('#btn-collapse').offsetWidth + 2;
+    const availableWidth = list.parentElement.clientWidth + 2;
     const style = getComputedStyle(list);
     const contentWidth = [...list.children].reduce((width, child) => width + child.offsetWidth, 0)
       + parseFloat(style.columnGap) * (list.children.length - 1)
@@ -129,9 +129,6 @@ export function createToolbar({ onTool, onColor, onSize }) {
       document.querySelector('#current-color-label').textContent = options.color.toUpperCase();
       document.querySelector('#size-value').textContent = `${options.size} px`;
       size.value = options.size;
-      const preview = document.querySelector('#brush-preview');
-      preview.style.setProperty('--brush-preview-size', `${Math.max(3, Math.min(18, options.size))}px`);
-      preview.style.setProperty('--brush-color', options.color);
       document.querySelector('#canvas').dataset.tool = options.tool;
       updateScroll();
     },

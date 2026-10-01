@@ -9,7 +9,6 @@ import { loadDrawing, saveDrawing, saveRecovery, loadSettings, saveSettings } fr
 mountIcons();
 bindDialogs();
 const canvas = document.querySelector('#canvas');
-const hint = document.querySelector('#canvas-hint');
 const status = document.querySelector('#save-status');
 const statusText = document.querySelector('#save-status-text');
 let revision = 0;
@@ -28,7 +27,7 @@ function setStatus(message, state = 'saved') {
 
 const engine = new DrawingEngine(canvas, {
   onChange() {
-    hint.hidden = true;
+    document.querySelector('#canvas-dimensions').textContent = `${Math.round(engine.width)} × ${Math.round(engine.height)}`;
     if (!ready) return;
     revision += 1;
     changedAt = Math.max(Date.now(), changedAt + 1);
@@ -50,8 +49,9 @@ function queueSave() {
   saveQueue = saveQueue.catch(() => {}).then(async () => {
     const currentRevision = revision;
     const snapshotAt = changedAt;
+    const dimensions = engine.dimensions;
     const blob = await engine.toBlob();
-    await saveDrawing({ blob, width: engine.width, height: engine.height, changedAt: snapshotAt });
+    await saveDrawing({ blob, ...dimensions, changedAt: snapshotAt });
     persistedRevision = Math.max(persistedRevision, currentRevision);
     if (currentRevision === revision) setStatus('Saved on this device');
   }).catch(() => {
@@ -99,7 +99,6 @@ document.querySelector('#btn-clear').addEventListener('click', () => openDialog(
 document.querySelector('#clear-confirm').addEventListener('click', () => {
   editor.close();
   engine.clear();
-  hint.hidden = false;
   document.querySelector('#clear-dialog').close();
   toast('A fresh canvas. Undo brings your drawing back.');
 });
@@ -162,10 +161,10 @@ try {
   if (drawing) {
     changedAt = drawing.changedAt ?? drawing.updatedAt ?? Date.now();
     await engine.loadBlob(drawing.blob, drawing.width ? { width: drawing.width, height: drawing.height } : undefined);
-    hint.hidden = true;
     if (drawing.storageUnavailable) setStatus('Autosave unavailable. Save a PNG to keep your work.', 'error');
     else if (drawing.legacy || drawing.recovered) {
-      await saveDrawing({ blob: await engine.toBlob(), width: engine.width, height: engine.height, changedAt });
+      const dimensions = engine.dimensions;
+      await saveDrawing({ blob: await engine.toBlob(), ...dimensions, changedAt });
       setStatus(drawing.legacy ? 'Your previous drawing is restored' : 'Saved on this device');
     } else setStatus('Saved on this device');
   }
